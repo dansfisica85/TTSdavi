@@ -288,8 +288,9 @@ if __name__ == "__main__":
                     return f"The training was interrupted due an error !! Please check the console to check the full error message! \n Error summary: {error}", "", "", "", ""
 
                 # copy original files to avoid parameters changes issues
-                os.system(f"cp {config_path} {exp_path}")
-                os.system(f"cp {vocab_file} {exp_path}")
+                import shutil
+                shutil.copy(config_path, exp_path)
+                shutil.copy(vocab_file, exp_path)
 
                 ft_xtts_checkpoint = os.path.join(exp_path, "best_model.pth")
                 print("Model training done!")
