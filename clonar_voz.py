@@ -5,6 +5,12 @@ Clonador de Voz - Script Simplificado
 =====================================
 Este script permite clonar uma voz usando o modelo XTTS da Coqui TTS.
 
+===============================================
+Desenvolvido por: Professor Davi Antonino Nunes da Silva
+Contato: (16) 99260-4315
+E-mail: professordavi85@gmail.com
+===============================================
+
 Uso:
     python clonar_voz.py --audio_referencia "caminho/para/audio.wav" --texto "Olá, mundo!" --saida "output.wav"
 
@@ -138,9 +144,14 @@ def interface_gradio():
             return None, f"❌ Erro: {str(e)}"
     
     # Interface Gradio
-    with gr.Blocks(title="🎙️ Clonador de Voz", theme=gr.themes.Soft()) as demo:
+    with gr.Blocks(title="🎙️ Clonador de Voz - Prof. Davi", theme=gr.themes.Soft()) as demo:
         gr.Markdown("""
         # 🎙️ Clonador de Voz com XTTS v2
+        
+        **Desenvolvido por:** Professor Davi Antonino Nunes da Silva  
+        **Contato:** (16) 99260-4315 | **E-mail:** professordavi85@gmail.com
+        
+        ---
         
         Este aplicativo permite clonar qualquer voz a partir de um pequeno áudio de referência.
         
@@ -205,6 +216,11 @@ def interface_gradio():
         ## 🌍 Idiomas Suportados:
         Português, Inglês, Espanhol, Francês, Alemão, Italiano, Polonês, Turco, Russo, 
         Holandês, Tcheco, Árabe, Chinês, Húngaro, Coreano, Japonês
+        
+        ---
+        **Desenvolvedor:** Professor Davi Antonino Nunes da Silva  
+        **Contato:** (16) 99260-4315 | **E-mail:** professordavi85@gmail.com  
+        © 2026 - Todos os direitos reservados
         """)
     
     return demo

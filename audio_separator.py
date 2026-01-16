@@ -5,6 +5,12 @@ Separador de Áudio - Módulo de Separação de Vocais e Instrumentais
 ===================================================================
 Usa Demucs (Meta AI) para separar stems de áudio.
 Sem dependência de torchaudio ou FFmpeg.
+
+===============================================
+Desenvolvido por: Professor Davi Antonino Nunes da Silva
+Contato: (16) 99260-4315
+E-mail: professordavi85@gmail.com
+===============================================
 """
 
 import os

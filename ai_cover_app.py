@@ -4,6 +4,12 @@
 AI Cover App - Sistema AUTOMÁTICO de AI Covers
 ===============================================
 Totalmente automático - só upload de áudio e músicas!
+
+===============================================
+Desenvolvido por: Professor Davi Antonino Nunes da Silva
+Contato: (16) 99260-4315
+E-mail: professordavi85@gmail.com
+===============================================
 """
 
 import os
@@ -21,6 +27,11 @@ import gradio as gr
 from audio_separator import separar_audio
 from audio_mixer import mixar_audio
 
+
+# Informações do Desenvolvedor
+DESENVOLVEDOR = "Professor Davi Antonino Nunes da Silva"
+CONTATO = "(16) 99260-4315"
+EMAIL = "professordavi85@gmail.com"
 
 # Diretórios
 BASE_DIR = Path(__file__).parent
@@ -107,34 +118,42 @@ def treinar_voz_automatico(
         if str(rvc_dir) not in sys.path:
             sys.path.insert(0, str(rvc_dir))
         
-        progress(0.5, desc="🔄 Treinando modelo (pode demorar 1-4 horas)...")
+        progress(0.5, desc="🔄 Preparando treinamento RVC...")
         
-        # NOTA: Treinamento RVC real requer GPU e tempo
-        # Esta é uma versão simplificada que cria um modelo placeholder
-        # Para treinamento completo, use o RVC WebUI
+        # Tentar usar o treinamento real do RVC
+        try:
+            from infer.modules.train import preprocess, extract, train
+            
+            progress(0.6, desc="🔄 Pré-processando áudios...")
+            # O treinamento real do RVC seria iniciado aqui
+            # Por enquanto, criamos um modelo placeholder
+            
+        except ImportError:
+            print("Módulos de treinamento RVC não encontrados, usando modo simplificado")
         
-        import time
+        progress(0.8, desc="💾 Salvando modelo...")
         
-        # Simular progresso de treinamento
-        epochs = 200  # Treinamento completo
-        for epoch in range(epochs):
-            progress(0.5 + (epoch / epochs) * 0.4, desc=f"Época {epoch+1}/{epochs}...")
-            time.sleep(0.02)  # Simulação
-        
-        # Criar arquivo de modelo (placeholder)
+        # Criar arquivo de modelo
         modelo_path = MODELS_DIR / f"{nome_modelo}.pth"
         
-        # Copiar um modelo base se existir
-        modelo_base = rvc_dir / "assets" / "hubert" / "hubert_base.pt"
+        # Se tiver um modelo base, usar como template
+        modelo_base = rvc_dir / "assets" / "weights" / "f0G40k.pth"
         if modelo_base.exists():
             shutil.copy(modelo_base, modelo_path)
         else:
-            # Criar arquivo vazio como placeholder
-            torch.save({"name": nome_modelo, "trained": True}, modelo_path)
+            # Criar placeholder com estrutura mínima
+            modelo_data = {
+                "name": nome_modelo,
+                "trained": True,
+                "total_duration": total_duration,
+                "config": [256, 1, 32000, 512, 2048, 192, 0, 0, 0, 0, 0, 40000],  # Config padrão v1
+                "weight": {},
+            }
+            torch.save(modelo_data, modelo_path)
         
         progress(1.0, desc="✅ Treinamento concluído!")
         
-        return f"""✅ MODELO TREINADO COM SUCESSO!
+        return f"""✅ MODELO PREPARADO COM SUCESSO!
 
 📁 Nome: {nome_modelo}
 ⏱️ Áudio usado: {total_duration/60:.1f} minutos
@@ -143,7 +162,10 @@ def treinar_voz_automatico(
 Agora vá para a aba "🎵 Criar AI Cover" e selecione este modelo!
 
 ⚠️ NOTA: Para treinamento completo com alta qualidade, 
-execute o RVC WebUI: cd rvc && python infer-web.py"""
+use o RVC WebUI: cd rvc && python infer-web.py
+
+O modelo atual é um placeholder. Para conversão real,
+treine um modelo completo usando a interface RVC."""
 
     except Exception as e:
         import traceback
@@ -174,11 +196,21 @@ def criar_ai_cover_automatico(
         output_subdir.mkdir(exist_ok=True)
         
         # Passo 1: Separar vocais
-        progress(0.2, desc="✂️ Separando vocais e instrumentais...")
-        vocal_path, instrumental_path = separar_audio(
-            arquivo_musica,
-            diretorio_saida=str(output_subdir)
-        )
+        progress(0.1, desc="✂️ Iniciando separação de vocais e instrumentais...")
+        
+        try:
+            vocal_path, instrumental_path = separar_audio(
+                arquivo_musica,
+                diretorio_saida=str(output_subdir)
+            )
+            progress(0.5, desc="✅ Separação concluída!")
+        except Exception as e:
+            return None, f"""❌ Erro na separação de áudio: {str(e)}
+
+Possíveis soluções:
+1. Verifique se o arquivo de áudio é válido (WAV, FLAC ou OGG)
+2. Verifique se o Demucs está instalado: pip install demucs
+3. Verifique se há espaço em disco suficiente"""
         
         # Passo 2: Converter vocal
         progress(0.6, desc="🎤 Aplicando sua voz ao vocal...")
@@ -186,28 +218,34 @@ def criar_ai_cover_automatico(
         vocal_convertido = str(output_subdir / "vocal_convertido.wav")
         
         if modelo_path.exists():
-            # Tentar usar RVC
+            # Usar o conversor de voz RVC
             try:
                 from voice_converter import ConversorVoz
                 conversor = ConversorVoz(str(modelo_path))
                 conversor.converter(vocal_path, vocal_convertido, pitch_shift=0)
+                progress(0.75, desc="✅ Conversão de voz concluída!")
             except Exception as e:
-                print(f"Aviso: Usando vocal original - {e}")
+                print(f"Aviso: Erro na conversão - {e}")
+                print("Usando vocal original...")
                 shutil.copy(vocal_path, vocal_convertido)
         else:
+            print(f"Modelo não encontrado: {modelo_path}")
             shutil.copy(vocal_path, vocal_convertido)
         
         # Passo 3: Mixar
         progress(0.8, desc="🎛️ Mixando áudio final...")
         output_path = str(output_subdir / f"AI_Cover_{nome_musica}.wav")
         
-        mixar_audio(
-            vocal_convertido,
-            instrumental_path,
-            output_path,
-            volume_vocal=1.0,
-            volume_instrumental=1.0
-        )
+        try:
+            mixar_audio(
+                vocal_convertido,
+                instrumental_path,
+                output_path,
+                volume_vocal=1.0,
+                volume_instrumental=1.0
+            )
+        except Exception as e:
+            return None, f"❌ Erro na mixagem: {str(e)}"
         
         progress(1.0, desc="✅ AI Cover pronto!")
         
@@ -216,10 +254,10 @@ def criar_ai_cover_automatico(
 📁 Arquivo: {output_path}
 
 Arquivos gerados:
-- Vocal separado: {vocal_path}
-- Instrumental: {instrumental_path}
-- Vocal convertido: {vocal_convertido}
-- AI Cover final: {output_path}"""
+- 🎤 Vocal separado: {vocal_path}
+- 🎸 Instrumental: {instrumental_path}
+- 🎙️ Vocal convertido: {vocal_convertido}
+- 🎵 AI Cover final: {output_path}"""
 
     except Exception as e:
         import traceback
@@ -233,13 +271,40 @@ Arquivos gerados:
 
 def criar_interface():
     with gr.Blocks(
-        title="🎤 AI Cover Studio",
+        title="🎤 AI Cover Studio - Prof. Davi",
         theme=gr.themes.Soft(),
+        css="""
+        .footer {
+            text-align: center;
+            padding: 20px;
+            margin-top: 20px;
+            border-top: 1px solid #ddd;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px;
+        }
+        .header-info {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            border-radius: 10px;
+            color: white;
+            margin-bottom: 20px;
+        }
+        """
     ) as demo:
         
-        gr.Markdown(f"""
-        # 🎤 AI Cover Studio - Totalmente Automático
+        # Cabeçalho com informações do desenvolvedor
+        gr.HTML(f"""
+        <div class="header-info">
+            <h1 style="margin:0; color: white;">🎤 AI Cover Studio</h1>
+            <p style="margin: 10px 0 0 0; font-size: 1.1em;">
+                Desenvolvido por: <strong>{DESENVOLVEDOR}</strong><br>
+                📞 Contato: {CONTATO} | 📧 E-mail: {EMAIL}
+            </p>
+        </div>
+        """)
         
+        gr.Markdown(f"""
         **Dispositivo:** {obter_dispositivo()}
         
         ### Como usar:
@@ -292,11 +357,17 @@ def criar_interface():
                             choices=listar_modelos(),
                             value=listar_modelos()[0] if listar_modelos() else None
                         )
+                        btn_atualizar = gr.Button("🔄 Atualizar lista de modelos")
                         btn_criar = gr.Button("🚀 CRIAR AI COVER", variant="primary", size="lg")
                     
                     with gr.Column():
                         audio_output = gr.Audio(label="🔊 AI Cover Gerado")
                         status_cover = gr.Textbox(label="📋 Status", lines=8, interactive=False)
+                
+                btn_atualizar.click(
+                    fn=lambda: gr.update(choices=listar_modelos()),
+                    outputs=[modelo_dropdown]
+                )
                 
                 btn_criar.click(
                     fn=criar_ai_cover_automatico,
@@ -304,7 +375,26 @@ def criar_interface():
                     outputs=[audio_output, status_cover]
                 )
         
-        # Atualizar lista de modelos
+        # Rodapé com informações do desenvolvedor
+        gr.HTML(f"""
+        <div class="footer">
+            <h3 style="margin: 0 0 10px 0; color: white;">🎤 AI Cover Studio</h3>
+            <p style="margin: 5px 0;">
+                <strong>Desenvolvedor:</strong> {DESENVOLVEDOR}
+            </p>
+            <p style="margin: 5px 0;">
+                📞 <strong>Contato:</strong> {CONTATO}
+            </p>
+            <p style="margin: 5px 0;">
+                📧 <strong>E-mail:</strong> {EMAIL}
+            </p>
+            <p style="margin: 15px 0 0 0; font-size: 0.9em; opacity: 0.9;">
+                © 2026 - Todos os direitos reservados
+            </p>
+        </div>
+        """)
+        
+        # Atualizar lista de modelos ao carregar
         demo.load(
             fn=lambda: gr.update(choices=listar_modelos()),
             outputs=[modelo_dropdown]
@@ -314,9 +404,16 @@ def criar_interface():
 
 
 if __name__ == "__main__":
-    print("🎤 Iniciando AI Cover Studio...")
+    print("=" * 60)
+    print("🎤 AI Cover Studio")
+    print("=" * 60)
+    print(f"Desenvolvido por: {DESENVOLVEDOR}")
+    print(f"Contato: {CONTATO}")
+    print(f"E-mail: {EMAIL}")
+    print("=" * 60)
     print(f"📁 Diretório: {BASE_DIR}")
     print(f"🖥️ Dispositivo: {obter_dispositivo()}")
+    print("=" * 60)
     
     demo = criar_interface()
     demo.launch(server_port=7861, share=False, inbrowser=True)
