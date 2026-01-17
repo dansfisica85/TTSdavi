@@ -7,6 +7,10 @@ cmds = [
     "pip install --no-cache-dir -r requirements-railway.txt"
 ]
 
+# Ignorar Makefile e pyproject.toml do projeto raiz
+[phases.build]
+cmds = []
+
 [start]
 cmd = "python ai_cover_app.py"
 
@@ -14,3 +18,4 @@ cmd = "python ai_cover_app.py"
 GRADIO_SERVER_NAME = "0.0.0.0"
 PORT = "8080"
 PIP_NO_CACHE_DIR = "1"
+NIXPACKS_NO_MAKE = "1"
