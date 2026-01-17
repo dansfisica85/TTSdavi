@@ -1,7 +1,7 @@
 [project]
-name = "ai-cover-studio"
+name = "ai-cover-api"
 version = "1.0.0"
-description = "AI Cover Studio - Voice Cloning and Conversion"
+description = "AI Cover Studio API"
 requires-python = ">=3.9"
 dependencies = [
     "fastapi>=0.109.0",
@@ -9,12 +9,15 @@ dependencies = [
 ]
 
 [build-system]
-requires = ["setuptools", "wheel"]
+requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-py-modules = []
 packages = []
+py-modules = []
+
+[tool.setuptools.package-data]
+"*" = []
 
 [flake8]
 max-line-length=120
