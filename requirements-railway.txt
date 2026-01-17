@@ -1,8 +1,4 @@
-# Core AI/ML dependencies
-torch>=2.0.0 --index-url https://download.pytorch.org/whl/cpu
-torchaudio>=2.0.0 --index-url https://download.pytorch.org/whl/cpu
-
-# Audio processing
+# Core dependencies (lightweight)
 numpy>=1.22.0
 scipy>=1.11.0
 soundfile>=0.12.0
@@ -12,9 +8,11 @@ pydub>=0.25.0
 # Gradio UI
 gradio>=4.0.0
 
-# Additional utilities
+# Utilities
 tqdm>=4.64.0
 requests>=2.28.0
 
-# For voice cloning (optional - comment if not needed)
-# TTS>=0.22.0
+# PyTorch CPU-only (much smaller ~200MB vs 2GB)
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch
+torchaudio
