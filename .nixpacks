@@ -1,2 +1,0 @@
-# Force Python provider only, ignore Makefile
-providers = ["python"]

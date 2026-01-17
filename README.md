@@ -1,407 +1,705 @@
-
-## 🐸Coqui.ai News
-- 📣 ⓍTTSv2 is here with 16 languages and better performance across the board.
-- 📣 ⓍTTS fine-tuning code is out. Check the [example recipes](https://github.com/coqui-ai/TTS/tree/dev/recipes/ljspeech).
-- 📣 ⓍTTS can now stream with <200ms latency.
-- 📣 ⓍTTS, our production TTS model that can speak 13 languages, is released [Blog Post](https://coqui.ai/blog/tts/open_xtts), [Demo](https://huggingface.co/spaces/coqui/xtts), [Docs](https://tts.readthedocs.io/en/dev/models/xtts.html)
-- 📣 [🐶Bark](https://github.com/suno-ai/bark) is now available for inference with unconstrained voice cloning. [Docs](https://tts.readthedocs.io/en/dev/models/bark.html)
-- 📣 You can use [~1100 Fairseq models](https://github.com/facebookresearch/fairseq/tree/main/examples/mms) with 🐸TTS.
-- 📣 🐸TTS now supports 🐢Tortoise with faster inference. [Docs](https://tts.readthedocs.io/en/dev/models/tortoise.html)
+# 🎤 AI Cover Studio
 
 <div align="center">
-<img src="https://static.scarf.sh/a.png?x-pxid=cf317fe7-2188-4721-bc01-124bb5d5dbb2" />
 
-## <img src="https://raw.githubusercontent.com/coqui-ai/TTS/main/images/coqui-log-green-TTS.png" height="56"/>
+![AI Cover Studio](https://img.shields.io/badge/AI%20Cover-Studio-purple?style=for-the-badge&logo=music&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3.9+-blue?style=for-the-badge&logo=python&logoColor=white)
+![PyTorch](https://img.shields.io/badge/PyTorch-2.0+-red?style=for-the-badge&logo=pytorch&logoColor=white)
+![Gradio](https://img.shields.io/badge/Gradio-4.0+-orange?style=for-the-badge&logo=gradio&logoColor=white)
 
+**Sistema Completo de AI Covers - Transforme qualquer música com vozes clonadas por IA**
 
-**🐸TTS is a library for advanced Text-to-Speech generation.**
-
-🚀 Pretrained models in +1100 languages.
-
-🛠️ Tools for training new models and fine-tuning existing models in any language.
-
-📚 Utilities for dataset analysis and curation.
-______________________________________________________________________
-
-[![Discord](https://img.shields.io/discord/1037326658807533628?color=%239B59B6&label=chat%20on%20discord)](https://discord.gg/5eXr5seRrv)
-[![License](<https://img.shields.io/badge/License-MPL%202.0-brightgreen.svg>)](https://opensource.org/licenses/MPL-2.0)
-[![PyPI version](https://badge.fury.io/py/TTS.svg)](https://badge.fury.io/py/TTS)
-[![Covenant](https://camo.githubusercontent.com/7d620efaa3eac1c5b060ece5d6aacfcc8b81a74a04d05cd0398689c01c4463bb/68747470733a2f2f696d672e736869656c64732e696f2f62616467652f436f6e7472696275746f72253230436f76656e616e742d76322e3025323061646f707465642d6666363962342e737667)](https://github.com/coqui-ai/TTS/blob/master/CODE_OF_CONDUCT.md)
-[![Downloads](https://pepy.tech/badge/tts)](https://pepy.tech/project/tts)
-[![DOI](https://zenodo.org/badge/265612440.svg)](https://zenodo.org/badge/latestdoi/265612440)
-
-![GithubActions](https://github.com/coqui-ai/TTS/actions/workflows/aux_tests.yml/badge.svg)
-![GithubActions](https://github.com/coqui-ai/TTS/actions/workflows/data_tests.yml/badge.svg)
-![GithubActions](https://github.com/coqui-ai/TTS/actions/workflows/docker.yaml/badge.svg)
-![GithubActions](https://github.com/coqui-ai/TTS/actions/workflows/inference_tests.yml/badge.svg)
-![GithubActions](https://github.com/coqui-ai/TTS/actions/workflows/style_check.yml/badge.svg)
-![GithubActions](https://github.com/coqui-ai/TTS/actions/workflows/text_tests.yml/badge.svg)
-![GithubActions](https://github.com/coqui-ai/TTS/actions/workflows/tts_tests.yml/badge.svg)
-![GithubActions](https://github.com/coqui-ai/TTS/actions/workflows/vocoder_tests.yml/badge.svg)
-![GithubActions](https://github.com/coqui-ai/TTS/actions/workflows/zoo_tests0.yml/badge.svg)
-![GithubActions](https://github.com/coqui-ai/TTS/actions/workflows/zoo_tests1.yml/badge.svg)
-![GithubActions](https://github.com/coqui-ai/TTS/actions/workflows/zoo_tests2.yml/badge.svg)
-[![Docs](<https://readthedocs.org/projects/tts/badge/?version=latest&style=plastic>)](https://tts.readthedocs.io/en/latest/)
+[🚀 Demo Online](https://ttsdavi-production.up.railway.app) | [📖 Documentação](#-arquitetura-do-sistema) | [🛠️ Instalação](#-instalação)
 
 </div>
 
-______________________________________________________________________
+---
 
-## 💬 Where to ask questions
-Please use our dedicated channels for questions and discussion. Help is much more valuable if it's shared publicly so that more people can benefit from it.
+## 👨‍🏫 Desenvolvedor
 
-| Type                            | Platforms                               |
-| ------------------------------- | --------------------------------------- |
-| 🚨 **Bug Reports**              | [GitHub Issue Tracker]                  |
-| 🎁 **Feature Requests & Ideas** | [GitHub Issue Tracker]                  |
-| 👩‍💻 **Usage Questions**          | [GitHub Discussions]                    |
-| 🗯 **General Discussion**       | [GitHub Discussions] or [Discord]   |
+| | |
+|---|---|
+| **Nome** | Professor Davi Antonino Nunes da Silva |
+| **Contato** | (16) 99260-4315 |
+| **E-mail** | professordavi85@gmail.com |
 
-[github issue tracker]: https://github.com/coqui-ai/tts/issues
-[github discussions]: https://github.com/coqui-ai/TTS/discussions
-[discord]: https://discord.gg/5eXr5seRrv
-[Tutorials and Examples]: https://github.com/coqui-ai/TTS/wiki/TTS-Notebooks-and-Tutorials
+---
 
+## 📋 Índice
 
-## 🔗 Links and Resources
-| Type                            | Links                               |
-| ------------------------------- | --------------------------------------- |
-| 💼 **Documentation**              | [ReadTheDocs](https://tts.readthedocs.io/en/latest/)
-| 💾 **Installation**               | [TTS/README.md](https://github.com/coqui-ai/TTS/tree/dev#installation)|
-| 👩‍💻 **Contributing**               | [CONTRIBUTING.md](https://github.com/coqui-ai/TTS/blob/main/CONTRIBUTING.md)|
-| 📌 **Road Map**                   | [Main Development Plans](https://github.com/coqui-ai/TTS/issues/378)
-| 🚀 **Released Models**            | [TTS Releases](https://github.com/coqui-ai/TTS/releases) and [Experimental Models](https://github.com/coqui-ai/TTS/wiki/Experimental-Released-Models)|
-| 📰 **Papers**                    | [TTS Papers](https://github.com/erogol/TTS-papers)|
+- [O que é o AI Cover Studio?](#-o-que-é-o-ai-cover-studio)
+- [Funcionalidades](#-funcionalidades)
+- [Arquitetura do Sistema](#-arquitetura-do-sistema)
+- [Fluxo de Processamento Completo](#-fluxo-de-processamento-completo)
+- [Estrutura de Arquivos](#-estrutura-de-arquivos)
+- [Instalação](#-instalação)
+- [Como Usar](#-como-usar)
+- [Módulos em Detalhe](#-módulos-em-detalhe)
+- [Deploy](#-deploy)
+- [Requisitos do Sistema](#-requisitos-do-sistema)
+- [Solução de Problemas](#-solução-de-problemas)
+- [Licença](#-licença)
 
+---
 
-## 🥇 TTS Performance
-<p align="center"><img src="https://raw.githubusercontent.com/coqui-ai/TTS/main/images/TTS-performance.png" width="800" /></p>
+## 🎵 O que é o AI Cover Studio?
 
-Underlined "TTS*" and "Judy*" are **internal** 🐸TTS models that are not released open-source. They are here to show the potential. Models prefixed with a dot (.Jofish .Abe and .Janice) are real human voices.
+O **AI Cover Studio** é um sistema completo e automatizado para criação de **AI Covers** - versões de músicas onde a voz original é substituída por uma voz clonada usando Inteligência Artificial.
 
-## Features
-- High-performance Deep Learning models for Text2Speech tasks.
-    - Text2Spec models (Tacotron, Tacotron2, Glow-TTS, SpeedySpeech).
-    - Speaker Encoder to compute speaker embeddings efficiently.
-    - Vocoder models (MelGAN, Multiband-MelGAN, GAN-TTS, ParallelWaveGAN, WaveGrad, WaveRNN)
-- Fast and efficient model training.
-- Detailed training logs on the terminal and Tensorboard.
-- Support for Multi-speaker TTS.
-- Efficient, flexible, lightweight but feature complete `Trainer API`.
-- Released and ready-to-use models.
-- Tools to curate Text2Speech datasets under```dataset_analysis```.
-- Utilities to use and test your models.
-- Modular (but not too much) code base enabling easy implementation of new ideas.
+### O que são AI Covers?
 
-## Model Implementations
-### Spectrogram models
-- Tacotron: [paper](https://arxiv.org/abs/1703.10135)
-- Tacotron2: [paper](https://arxiv.org/abs/1712.05884)
-- Glow-TTS: [paper](https://arxiv.org/abs/2005.11129)
-- Speedy-Speech: [paper](https://arxiv.org/abs/2008.03802)
-- Align-TTS: [paper](https://arxiv.org/abs/2003.01950)
-- FastPitch: [paper](https://arxiv.org/pdf/2006.06873.pdf)
-- FastSpeech: [paper](https://arxiv.org/abs/1905.09263)
-- FastSpeech2: [paper](https://arxiv.org/abs/2006.04558)
-- SC-GlowTTS: [paper](https://arxiv.org/abs/2104.05557)
-- Capacitron: [paper](https://arxiv.org/abs/1906.03402)
-- OverFlow: [paper](https://arxiv.org/abs/2211.06892)
-- Neural HMM TTS: [paper](https://arxiv.org/abs/2108.13320)
-- Delightful TTS: [paper](https://arxiv.org/abs/2110.12612)
+AI Covers são recriações de músicas onde:
+1. A voz original do cantor é **removida** da música
+2. Uma nova voz (clonada por IA) **canta** a mesma melodia
+3. A voz clonada é **mixada** de volta com os instrumentos originais
 
-### End-to-End Models
-- ⓍTTS: [blog](https://coqui.ai/blog/tts/open_xtts)
-- VITS: [paper](https://arxiv.org/pdf/2106.06103)
-- 🐸 YourTTS: [paper](https://arxiv.org/abs/2112.02418)
-- 🐢 Tortoise: [orig. repo](https://github.com/neonbjb/tortoise-tts)
-- 🐶 Bark: [orig. repo](https://github.com/suno-ai/bark)
+Isso permite, por exemplo, ouvir como seria se um artista diferente cantasse determinada música.
 
-### Attention Methods
-- Guided Attention: [paper](https://arxiv.org/abs/1710.08969)
-- Forward Backward Decoding: [paper](https://arxiv.org/abs/1907.09006)
-- Graves Attention: [paper](https://arxiv.org/abs/1910.10288)
-- Double Decoder Consistency: [blog](https://erogol.com/solving-attention-problems-of-tts-models-with-double-decoder-consistency/)
-- Dynamic Convolutional Attention: [paper](https://arxiv.org/pdf/1910.10288.pdf)
-- Alignment Network: [paper](https://arxiv.org/abs/2108.10447)
+---
 
-### Speaker Encoder
-- GE2E: [paper](https://arxiv.org/abs/1710.10467)
-- Angular Loss: [paper](https://arxiv.org/pdf/2003.11982.pdf)
+## ✨ Funcionalidades
 
-### Vocoders
-- MelGAN: [paper](https://arxiv.org/abs/1910.06711)
-- MultiBandMelGAN: [paper](https://arxiv.org/abs/2005.05106)
-- ParallelWaveGAN: [paper](https://arxiv.org/abs/1910.11480)
-- GAN-TTS discriminators: [paper](https://arxiv.org/abs/1909.11646)
-- WaveRNN: [origin](https://github.com/fatchord/WaveRNN/)
-- WaveGrad: [paper](https://arxiv.org/abs/2009.00713)
-- HiFiGAN: [paper](https://arxiv.org/abs/2010.05646)
-- UnivNet: [paper](https://arxiv.org/abs/2106.07889)
+### 🎙️ Clonagem de Voz
+- Clone qualquer voz a partir de **3-10 segundos** de áudio
+- Suporte a **16 idiomas** incluindo Português Brasileiro
+- Modelo XTTS v2 da Coqui TTS
 
-### Voice Conversion
-- FreeVC: [paper](https://arxiv.org/abs/2210.15418)
+### 🎵 Separação de Áudio
+- Separa **vocais** e **instrumentais** de qualquer música
+- Usa tecnologia **Demucs** (Meta AI)
+- Alta qualidade de separação
 
-You can also help us implement more models.
+### 🔄 Conversão de Voz (RVC)
+- Converte vocais usando modelos **RVC** (Retrieval-based Voice Conversion)
+- Treinamento de modelos personalizados
+- Preserva entonação e emoção
 
-## Installation
-🐸TTS is tested on Ubuntu 18.04 with **python >= 3.9, < 3.12.**.
+### 🎛️ Mixagem Automática
+- Combina vocal convertido com instrumental
+- Ajuste automático de volume
+- Normalização profissional
 
-If you are only interested in [synthesizing speech](https://tts.readthedocs.io/en/latest/inference.html) with the released 🐸TTS models, installing from PyPI is the easiest option.
+### 🌐 Interface Web
+- Interface **Gradio** intuitiva
+- 100% automatizado - apenas upload e download
+- Funciona no navegador
+
+---
+
+## 🏗️ Arquitetura do Sistema
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                           AI COVER STUDIO                                    │
+│                                                                              │
+│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐    ┌─────────────┐  │
+│  │   ENTRADA   │───▶│  SEPARAÇÃO  │───▶│  CONVERSÃO  │───▶│   MIXAGEM   │  │
+│  │   (Upload)  │    │   (Demucs)  │    │    (RVC)    │    │   (Final)   │  │
+│  └─────────────┘    └─────────────┘    └─────────────┘    └─────────────┘  │
+│        │                   │                  │                  │          │
+│        ▼                   ▼                  ▼                  ▼          │
+│   ┌─────────┐        ┌──────────┐       ┌──────────┐       ┌──────────┐    │
+│   │ Música  │        │  Vocal   │       │  Vocal   │       │  Música  │    │
+│   │Original │        │   +      │       │Convertido│       │ AI Cover │    │
+│   │  .mp3   │        │Instrumen-│       │  .wav    │       │  .wav    │    │
+│   └─────────┘        │tal .wav  │       └──────────┘       └──────────┘    │
+│                      └──────────┘                                          │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Componentes Principais
+
+| Componente | Arquivo | Função |
+|------------|---------|--------|
+| **Interface Principal** | `ai_cover_app.py` | Orquestra todo o sistema, interface Gradio |
+| **Separador de Áudio** | `audio_separator.py` | Separa vocais e instrumentais |
+| **Conversor de Voz** | `voice_converter.py` | Aplica modelo RVC aos vocais |
+| **Mixer de Áudio** | `audio_mixer.py` | Combina vocal + instrumental |
+| **Clonador de Voz** | `clonar_voz.py` | Clona voz usando XTTS v2 |
+
+---
+
+## 🔄 Fluxo de Processamento Completo
+
+### Visão Geral do Pipeline
+
+```
+USUÁRIO                          SISTEMA                              RESULTADO
+   │                                │                                     │
+   │  1. Upload da música          │                                     │
+   │  ─────────────────────────────▶                                     │
+   │                                │                                     │
+   │  2. Upload/seleção do modelo  │                                     │
+   │  ─────────────────────────────▶                                     │
+   │                                │                                     │
+   │                           ┌────┴────┐                               │
+   │                           │SEPARAÇÃO│                               │
+   │                           └────┬────┘                               │
+   │                                │                                     │
+   │                           ┌────┴────┐                               │
+   │                           │CONVERSÃO│                               │
+   │                           └────┬────┘                               │
+   │                                │                                     │
+   │                           ┌────┴────┐                               │
+   │                           │ MIXAGEM │                               │
+   │                           └────┬────┘                               │
+   │                                │                                     │
+   │  3. Download do AI Cover      │                                     │
+   │  ◀─────────────────────────────                                     │
+   │                                                                      │
+```
+
+---
+
+### ETAPA 1: Upload e Validação
+**Arquivo:** `ai_cover_app.py` → função `criar_ai_cover()`
+
+```python
+# O usuário faz upload de:
+# - Arquivo de música (MP3, WAV, FLAC)
+# - Seleção do modelo de voz treinado
+
+def criar_ai_cover(arquivo_musica, modelo_selecionado, volume_vocal, volume_instrumental):
+    # 1.1 Validação do arquivo
+    if not arquivo_musica:
+        return None, "❌ Faça upload de uma música"
+    
+    # 1.2 Verificação do modelo
+    modelo_path = MODELS_DIR / f"{modelo_selecionado}.pth"
+    if not modelo_path.exists():
+        return None, "❌ Modelo não encontrado"
+```
+
+**O que acontece:**
+1. Gradio recebe o arquivo via interface web
+2. Arquivo é salvo temporariamente no servidor
+3. Sistema valida formato e tamanho
+4. Modelo selecionado é localizado em `models/`
+
+---
+
+### ETAPA 2: Separação de Áudio (Demucs)
+**Arquivo:** `audio_separator.py` → função `separar_audio()`
+
+```python
+def separar_audio(arquivo_entrada, diretorio_saida, modelo="htdemucs"):
+    """
+    Separa a música em stems usando Demucs.
+    
+    Entrada: música completa (vocal + instrumental)
+    Saída: vocal.wav + instrumental.wav (no_vocals.wav)
+    """
+    
+    # 2.1 Carregar modelo Demucs
+    from demucs.pretrained import get_model
+    from demucs.apply import apply_model
+    
+    model = get_model(modelo)  # htdemucs é o modelo padrão
+    model.to(device)
+    
+    # 2.2 Carregar áudio
+    audio, sr = carregar_audio(arquivo_entrada, sr_alvo=44100)
+    
+    # 2.3 Aplicar separação
+    # Demucs separa em 4 stems: drums, bass, other, vocals
+    stems = apply_model(model, audio)
+    
+    # 2.4 Extrair vocal e criar instrumental
+    vocal = stems['vocals']
+    instrumental = stems['drums'] + stems['bass'] + stems['other']
+    
+    # 2.5 Salvar arquivos
+    salvar_audio(vocal, f"{diretorio_saida}/vocals.wav")
+    salvar_audio(instrumental, f"{diretorio_saida}/no_vocals.wav")
+    
+    return vocal_path, instrumental_path
+```
+
+**Detalhes Técnicos:**
+
+| Parâmetro | Valor | Descrição |
+|-----------|-------|-----------|
+| **Modelo** | htdemucs | Modelo híbrido (transformers + U-Net) |
+| **Sample Rate** | 44100 Hz | Taxa de amostragem padrão |
+| **Canais** | Stereo | Preserva canais L/R |
+| **Stems** | 4 | drums, bass, other, vocals |
+
+**Fluxo interno do Demucs:**
+
+```
+┌──────────────┐
+│ Música Input │
+│   (stereo)   │
+└──────┬───────┘
+       │
+       ▼
+┌──────────────┐
+│   Encoder    │  ◀── Espectrograma + Waveform
+│  (Híbrido)   │
+└──────┬───────┘
+       │
+       ▼
+┌──────────────┐
+│ Transformer  │  ◀── Atenção temporal
+│   Layers     │
+└──────┬───────┘
+       │
+       ▼
+┌──────────────┐
+│   Decoder    │
+│   (4 stems)  │
+└──────┬───────┘
+       │
+       ├───▶ 🥁 Drums
+       ├───▶ 🎸 Bass  
+       ├───▶ 🎹 Other (piano, guitarra, etc)
+       └───▶ 🎤 Vocals ◀── Este é extraído
+```
+
+---
+
+### ETAPA 3: Conversão de Voz (RVC)
+**Arquivo:** `voice_converter.py` → classe `ConversorVoz`
+
+```python
+class ConversorVoz:
+    def __init__(self, modelo_path, index_path=None):
+        """
+        Inicializa conversor com modelo RVC treinado.
+        
+        modelo_path: arquivo .pth com pesos do modelo
+        index_path: arquivo .index para retrieval (opcional)
+        """
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        self._carregar_modelo()
+    
+    def converter(self, audio_entrada, f0_metodo="rmvpe", f0_up_key=0):
+        """
+        Converte voz do áudio de entrada para voz do modelo.
+        
+        Parâmetros:
+        - f0_metodo: método de extração de pitch (rmvpe é mais preciso)
+        - f0_up_key: ajuste de tom (-12 a +12 semitons)
+        """
+        
+        # 3.1 Carregar áudio de entrada (vocal separado)
+        audio, sr = carregar_audio_sf(audio_entrada, sr_alvo=16000)
+        
+        # 3.2 Extrair características F0 (pitch)
+        f0 = self._extrair_f0(audio, metodo=f0_metodo)
+        
+        # 3.3 Ajustar tom se necessário
+        if f0_up_key != 0:
+            f0 = f0 * (2 ** (f0_up_key / 12))
+        
+        # 3.4 Extrair embeddings de voz
+        embeddings = self._extrair_embeddings(audio)
+        
+        # 3.5 Converter usando modelo RVC
+        audio_convertido = self.modelo(embeddings, f0)
+        
+        # 3.6 Pós-processamento
+        audio_final = self._pos_processar(audio_convertido)
+        
+        return audio_final
+```
+
+**Pipeline de Conversão RVC:**
+
+```
+┌─────────────────┐
+│  Vocal Original │
+│   (separado)    │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│ Extração de F0  │  ◀── Pitch (frequência fundamental)
+│    (RMVPE)      │      Preserva melodia e entonação
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│ Extração de     │  ◀── Características da fala
+│  Embeddings     │      (conteúdo fonético)
+│   (HuBERT)      │
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│  Modelo RVC     │  ◀── Modelo treinado com voz alvo
+│  (Generator)    │      Transforma timbre
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│  Vocoder        │  ◀── Reconstrói forma de onda
+│  (HiFi-GAN)     │      Alta qualidade de áudio
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│ Vocal Convertido│
+│  (nova voz)     │
+└─────────────────┘
+```
+
+**Parâmetros importantes:**
+
+| Parâmetro | Descrição | Valor típico |
+|-----------|-----------|--------------|
+| **f0_up_key** | Ajuste de tom (semitons) | 0 (mesmo tom) |
+| **f0_metodo** | Método de extração F0 | rmvpe (mais preciso) |
+| **index_rate** | Peso do índice de retrieval | 0.75 |
+| **filter_radius** | Suavização do pitch | 3 |
+| **resample_sr** | Sample rate interno | 40000 Hz |
+
+---
+
+### ETAPA 4: Mixagem Final
+**Arquivo:** `audio_mixer.py` → função `mixar_audio()`
+
+```python
+def mixar_audio(vocal_path, instrumental_path, output_path, 
+                volume_vocal=1.0, volume_instrumental=1.0):
+    """
+    Combina vocal convertido com instrumental original.
+    
+    Processo:
+    1. Carregar ambos os áudios
+    2. Sincronizar durações
+    3. Aplicar volumes
+    4. Mixar e normalizar
+    5. Exportar arquivo final
+    """
+    
+    # 4.1 Carregar áudios
+    vocal = carregar_audio(vocal_path, sample_rate=44100)
+    instrumental = carregar_audio(instrumental_path, sample_rate=44100)
+    
+    # 4.2 Garantir mesmo número de canais
+    if vocal.shape[1] == 1 and instrumental.shape[1] == 2:
+        vocal = np.repeat(vocal, 2, axis=1)  # Mono → Stereo
+    
+    # 4.3 Sincronizar durações
+    max_len = max(vocal.shape[0], instrumental.shape[0])
+    vocal = ajustar_duracao(vocal, max_len)
+    instrumental = ajustar_duracao(instrumental, max_len)
+    
+    # 4.4 Aplicar volumes
+    vocal = vocal * volume_vocal
+    instrumental = instrumental * volume_instrumental
+    
+    # 4.5 Mixar
+    mix = vocal + instrumental
+    
+    # 4.6 Normalizar para evitar clipping
+    mix = normalizar_audio(mix, target_db=-3.0)
+    
+    # 4.7 Salvar
+    sf.write(output_path, mix, 44100)
+    
+    return output_path
+```
+
+**Diagrama de Mixagem:**
+
+```
+┌──────────────────┐     ┌──────────────────┐
+│ Vocal Convertido │     │   Instrumental   │
+│    (RVC out)     │     │  (Demucs out)    │
+└────────┬─────────┘     └────────┬─────────┘
+         │                        │
+         ▼                        ▼
+   ┌───────────┐           ┌───────────┐
+   │  Volume   │           │  Volume   │
+   │   ×1.0    │           │   ×1.0    │
+   └─────┬─────┘           └─────┬─────┘
+         │                        │
+         └──────────┬─────────────┘
+                    │
+                    ▼
+            ┌───────────────┐
+            │   MIXAGEM     │
+            │  vocal + inst │
+            └───────┬───────┘
+                    │
+                    ▼
+            ┌───────────────┐
+            │ NORMALIZAÇÃO  │
+            │  -3dB target  │
+            └───────┬───────┘
+                    │
+                    ▼
+            ┌───────────────┐
+            │  AI COVER     │
+            │   FINAL.wav   │
+            └───────────────┘
+```
+
+---
+
+### ETAPA 5: Entrega ao Usuário
+**Arquivo:** `ai_cover_app.py` → interface Gradio
+
+```python
+# Após todo processamento:
+return caminho_audio_final, "✅ AI Cover criado com sucesso!"
+
+# O Gradio exibe:
+# - Player de áudio para preview
+# - Botão de download
+# - Mensagem de status
+```
+
+---
+
+## 📁 Estrutura de Arquivos
+
+```
+TTSdavi/
+│
+├── 📄 ai_cover_app.py          # 🎯 PRINCIPAL - Interface Gradio
+├── 📄 audio_separator.py       # 🎵 Separação vocal/instrumental (Demucs)
+├── 📄 voice_converter.py       # 🔄 Conversão de voz (RVC)
+├── 📄 audio_mixer.py           # 🎛️ Mixagem de áudio
+├── 📄 clonar_voz.py           # 🎤 Clonagem de voz (XTTS)
+│
+├── 📁 models/                  # Modelos RVC treinados (.pth)
+├── 📁 datasets/                # Datasets para treinamento
+├── 📁 output/                  # Arquivos de saída
+│
+├── 📁 TTS/                     # Biblioteca Coqui TTS
+├── 📁 rvc/                     # Módulos RVC
+│
+├── 📁 api/                     # API para Vercel
+│   └── 📄 index.py
+│
+├── 📄 Dockerfile               # Build para Railway
+├── 📄 railway.json             # Configuração Railway
+├── 📄 nixpacks.toml            # Build alternativo
+├── 📄 vercel.json              # Configuração Vercel
+│
+├── 📄 requirements.txt         # Dependências completas
+├── 📄 requirements-railway.txt # Dependências Railway (leve)
+├── 📄 pyproject.toml           # Metadados do projeto
+│
+└── 📄 LICENSE.txt              # Licença MPL 2.0
+```
+
+---
+
+## 🛠️ Instalação
+
+### Pré-requisitos
+
+- Python 3.9 - 3.12
+- 8GB RAM mínimo (16GB recomendado)
+- GPU NVIDIA com CUDA (opcional, mas recomendado)
+- FFmpeg instalado no sistema
+
+### Instalação Local
 
 ```bash
-pip install TTS
+# 1. Clonar repositório
+git clone https://github.com/dansfisica85/TTSdavi.git
+cd TTSdavi
+
+# 2. Criar ambiente virtual
+python -m venv venv
+source venv/bin/activate  # Linux/Mac
+# ou: venv\Scripts\activate  # Windows
+
+# 3. Instalar dependências
+pip install -r requirements.txt
+
+# 4. Executar
+python ai_cover_app.py
 ```
 
-If you plan to code or train models, clone 🐸TTS and install it locally.
+### Instalação com Docker
 
 ```bash
-git clone https://github.com/coqui-ai/TTS
-pip install -e .[all,dev,notebooks]  # Select the relevant extras
+# Build
+docker build -t ai-cover-studio .
+
+# Executar
+docker run -p 7860:7860 ai-cover-studio
 ```
 
-If you are on Ubuntu (Debian), you can also run following commands for installation.
+---
+
+## 🎮 Como Usar
+
+### Interface Web (Recomendado)
+
+1. Acesse https://ttsdavi-production.up.railway.app ou execute localmente
+2. **Aba "Treinar Voz"**: Faça upload de áudios para criar um modelo de voz
+3. **Aba "Criar AI Cover"**: 
+   - Upload da música
+   - Selecione o modelo de voz
+   - Ajuste volumes
+   - Clique em "Criar AI Cover"
+4. Baixe o resultado
+
+### Modo Programático
+
+```python
+from audio_separator import separar_audio
+from voice_converter import ConversorVoz
+from audio_mixer import mixar_audio
+
+# 1. Separar música
+vocal, instrumental = separar_audio("musica.mp3", "output/")
+
+# 2. Converter voz
+conversor = ConversorVoz("models/minha_voz.pth")
+vocal_convertido = conversor.converter(vocal)
+
+# 3. Mixar
+resultado = mixar_audio(vocal_convertido, instrumental, "ai_cover.wav")
+```
+
+---
+
+## 📦 Módulos em Detalhe
+
+### `ai_cover_app.py` - Interface Principal
+
+| Função | Descrição |
+|--------|-----------|
+| `criar_interface()` | Cria interface Gradio completa |
+| `treinar_voz_automatico()` | Pipeline de treinamento RVC |
+| `criar_ai_cover()` | Pipeline completo de AI Cover |
+| `listar_modelos()` | Lista modelos disponíveis |
+| `obter_dispositivo()` | Detecta GPU/CPU |
+
+### `audio_separator.py` - Separação de Áudio
+
+| Função | Descrição |
+|--------|-----------|
+| `separar_audio()` | Função principal de separação |
+| `carregar_audio()` | Carrega arquivo com soundfile |
+| `salvar_audio()` | Salva tensor como WAV |
+| `resample_audio()` | Altera sample rate |
+
+### `voice_converter.py` - Conversão RVC
+
+| Classe/Função | Descrição |
+|---------------|-----------|
+| `ConversorVoz` | Classe principal do conversor |
+| `converter()` | Converte áudio com modelo |
+| `_extrair_f0()` | Extrai pitch do áudio |
+| `_carregar_modelo()` | Carrega pesos .pth |
+
+### `audio_mixer.py` - Mixagem
+
+| Função | Descrição |
+|--------|-----------|
+| `mixar_audio()` | Combina vocal + instrumental |
+| `normalizar_audio()` | Normaliza para -3dB |
+| `ajustar_duracao()` | Sincroniza durações |
+| `carregar_audio()` | Carrega com resample |
+
+### `clonar_voz.py` - Clonagem XTTS
+
+| Função | Descrição |
+|--------|-----------|
+| `clonar_voz()` | Clona voz de referência |
+| `carregar_modelo()` | Carrega XTTS v2 |
+| `interface_gradio()` | Interface standalone |
+
+---
+
+## 🚀 Deploy
+
+### Railway (Aplicação Completa)
 
 ```bash
-$ make system-deps  # intended to be used on Ubuntu (Debian). Let us know if you have a different OS.
-$ make install
+# URL de produção
+https://ttsdavi-production.up.railway.app
 ```
 
-If you are on Windows, 👑@GuyPaddock wrote installation instructions [here](https://stackoverflow.com/questions/66726331/how-can-i-run-mozilla-tts-coqui-tts-training-with-cuda-on-a-windows-system).
+**Configuração:** `railway.json` + `Dockerfile`
 
-
-## Docker Image
-You can also try TTS without install with the docker image.
-Simply run the following command and you will be able to run TTS without installing it.
+### Vercel (Página Vitrine)
 
 ```bash
-docker run --rm -it -p 5002:5002 --entrypoint /bin/bash ghcr.io/coqui-ai/tts-cpu
-python3 TTS/server/server.py --list_models #To get the list of available models
-python3 TTS/server/server.py --model_name tts_models/en/vctk/vits # To start a server
+# URL
+https://tts-davi.vercel.app
 ```
 
-You can then enjoy the TTS server [here](http://[::1]:5002/)
-More details about the docker images (like GPU support) can be found [here](https://tts.readthedocs.io/en/latest/docker_images.html)
+**Configuração:** `vercel.json` + `api/index.py`
 
+---
 
-## Synthesizing speech by 🐸TTS
+## 💻 Requisitos do Sistema
 
-### 🐍 Python API
+### Mínimo
 
-#### Running a multi-speaker and multi-lingual model
+| Componente | Requisito |
+|------------|-----------|
+| **CPU** | 4 cores |
+| **RAM** | 8 GB |
+| **Disco** | 10 GB |
+| **Python** | 3.9+ |
 
-```python
-import torch
-from TTS.api import TTS
+### Recomendado
 
-# Get device
-device = "cuda" if torch.cuda.is_available() else "cpu"
+| Componente | Requisito |
+|------------|-----------|
+| **CPU** | 8+ cores |
+| **RAM** | 16 GB |
+| **GPU** | NVIDIA RTX 2060+ (6GB VRAM) |
+| **Disco** | 20 GB SSD |
+| **Python** | 3.10 |
 
-# List available 🐸TTS models
-print(TTS().list_models())
+---
 
-# Init TTS
-tts = TTS("tts_models/multilingual/multi-dataset/xtts_v2").to(device)
+## 🔧 Solução de Problemas
 
-# Run TTS
-# ❗ Since this model is multi-lingual voice cloning model, we must set the target speaker_wav and language
-# Text to speech list of amplitude values as output
-wav = tts.tts(text="Hello world!", speaker_wav="my/cloning/audio.wav", language="en")
-# Text to speech to a file
-tts.tts_to_file(text="Hello world!", speaker_wav="my/cloning/audio.wav", language="en", file_path="output.wav")
+### Erro: "CUDA out of memory"
+
+```bash
+# Use CPU
+export CUDA_VISIBLE_DEVICES=""
+python ai_cover_app.py
 ```
 
-#### Running a single speaker model
+### Erro: "Model not found"
 
-```python
-# Init TTS with the target model name
-tts = TTS(model_name="tts_models/de/thorsten/tacotron2-DDC", progress_bar=False).to(device)
+- Verifique se o modelo está em `models/`
+- Extensão deve ser `.pth`
 
-# Run TTS
-tts.tts_to_file(text="Ich bin eine Testnachricht.", file_path=OUTPUT_PATH)
+### Áudio com qualidade baixa
 
-# Example voice cloning with YourTTS in English, French and Portuguese
-tts = TTS(model_name="tts_models/multilingual/multi-dataset/your_tts", progress_bar=False).to(device)
-tts.tts_to_file("This is voice cloning.", speaker_wav="my/cloning/audio.wav", language="en", file_path="output.wav")
-tts.tts_to_file("C'est le clonage de la voix.", speaker_wav="my/cloning/audio.wav", language="fr-fr", file_path="output.wav")
-tts.tts_to_file("Isso é clonagem de voz.", speaker_wav="my/cloning/audio.wav", language="pt-br", file_path="output.wav")
-```
+- Use áudio de referência mais longo (5-10s)
+- Áudio de referência deve ser limpo (sem música de fundo)
+- Ajuste os volumes na mixagem
 
-#### Example voice conversion
+### Separação de vocais imperfeita
 
-Converting the voice in `source_wav` to the voice of `target_wav`
+- Alguns instrumentos podem vazar para o vocal
+- Músicas muito complexas podem ter resultados variados
+- Considere usar modelo `htdemucs_ft` para melhor qualidade
 
-```python
-tts = TTS(model_name="voice_conversion_models/multilingual/vctk/freevc24", progress_bar=False).to("cuda")
-tts.voice_conversion_to_file(source_wav="my/source.wav", target_wav="my/target.wav", file_path="output.wav")
-```
+---
 
-#### Example voice cloning together with the voice conversion model.
-This way, you can clone voices by using any model in 🐸TTS.
+## 📄 Licença
 
-```python
+Este projeto está licenciado sob a **Mozilla Public License 2.0** (MPL 2.0).
 
-tts = TTS("tts_models/de/thorsten/tacotron2-DDC")
-tts.tts_with_vc_to_file(
-    "Wie sage ich auf Italienisch, dass ich dich liebe?",
-    speaker_wav="target/speaker.wav",
-    file_path="output.wav"
-)
-```
+Baseado em:
+- [Coqui TTS](https://github.com/coqui-ai/TTS) - Síntese de voz
+- [Demucs](https://github.com/facebookresearch/demucs) - Separação de áudio
+- [RVC](https://github.com/RVC-Project/Retrieval-based-Voice-Conversion-WebUI) - Conversão de voz
 
-#### Example text to speech using **Fairseq models in ~1100 languages** 🤯.
-For Fairseq models, use the following name format: `tts_models/<lang-iso_code>/fairseq/vits`.
-You can find the language ISO codes [here](https://dl.fbaipublicfiles.com/mms/tts/all-tts-languages.html)
-and learn about the Fairseq models [here](https://github.com/facebookresearch/fairseq/tree/main/examples/mms).
+---
 
-```python
-# TTS with on the fly voice conversion
-api = TTS("tts_models/deu/fairseq/vits")
-api.tts_with_vc_to_file(
-    "Wie sage ich auf Italienisch, dass ich dich liebe?",
-    speaker_wav="target/speaker.wav",
-    file_path="output.wav"
-)
-```
+<div align="center">
 
-### Command-line `tts`
+**Desenvolvido com ❤️ por Professor Davi Antonino Nunes da Silva**
 
-<!-- begin-tts-readme -->
+📞 (16) 99260-4315 | 📧 professordavi85@gmail.com
 
-Synthesize speech on command line.
-
-You can either use your trained model or choose a model from the provided list.
-
-If you don't specify any models, then it uses LJSpeech based English model.
-
-#### Single Speaker Models
-
-- List provided models:
-
-  ```
-  $ tts --list_models
-  ```
-
-- Get model info (for both tts_models and vocoder_models):
-
-  - Query by type/name:
-    The model_info_by_name uses the name as it from the --list_models.
-    ```
-    $ tts --model_info_by_name "<model_type>/<language>/<dataset>/<model_name>"
-    ```
-    For example:
-    ```
-    $ tts --model_info_by_name tts_models/tr/common-voice/glow-tts
-    $ tts --model_info_by_name vocoder_models/en/ljspeech/hifigan_v2
-    ```
-  - Query by type/idx:
-    The model_query_idx uses the corresponding idx from --list_models.
-
-    ```
-    $ tts --model_info_by_idx "<model_type>/<model_query_idx>"
-    ```
-
-    For example:
-
-    ```
-    $ tts --model_info_by_idx tts_models/3
-    ```
-
-  - Query info for model info by full name:
-    ```
-    $ tts --model_info_by_name "<model_type>/<language>/<dataset>/<model_name>"
-    ```
-
-- Run TTS with default models:
-
-  ```
-  $ tts --text "Text for TTS" --out_path output/path/speech.wav
-  ```
-
-- Run TTS and pipe out the generated TTS wav file data:
-
-  ```
-  $ tts --text "Text for TTS" --pipe_out --out_path output/path/speech.wav | aplay
-  ```
-
-- Run a TTS model with its default vocoder model:
-
-  ```
-  $ tts --text "Text for TTS" --model_name "<model_type>/<language>/<dataset>/<model_name>" --out_path output/path/speech.wav
-  ```
-
-  For example:
-
-  ```
-  $ tts --text "Text for TTS" --model_name "tts_models/en/ljspeech/glow-tts" --out_path output/path/speech.wav
-  ```
-
-- Run with specific TTS and vocoder models from the list:
-
-  ```
-  $ tts --text "Text for TTS" --model_name "<model_type>/<language>/<dataset>/<model_name>" --vocoder_name "<model_type>/<language>/<dataset>/<model_name>" --out_path output/path/speech.wav
-  ```
-
-  For example:
-
-  ```
-  $ tts --text "Text for TTS" --model_name "tts_models/en/ljspeech/glow-tts" --vocoder_name "vocoder_models/en/ljspeech/univnet" --out_path output/path/speech.wav
-  ```
-
-- Run your own TTS model (Using Griffin-Lim Vocoder):
-
-  ```
-  $ tts --text "Text for TTS" --model_path path/to/model.pth --config_path path/to/config.json --out_path output/path/speech.wav
-  ```
-
-- Run your own TTS and Vocoder models:
-
-  ```
-  $ tts --text "Text for TTS" --model_path path/to/model.pth --config_path path/to/config.json --out_path output/path/speech.wav
-      --vocoder_path path/to/vocoder.pth --vocoder_config_path path/to/vocoder_config.json
-  ```
-
-#### Multi-speaker Models
-
-- List the available speakers and choose a <speaker_id> among them:
-
-  ```
-  $ tts --model_name "<language>/<dataset>/<model_name>"  --list_speaker_idxs
-  ```
-
-- Run the multi-speaker TTS model with the target speaker ID:
-
-  ```
-  $ tts --text "Text for TTS." --out_path output/path/speech.wav --model_name "<language>/<dataset>/<model_name>"  --speaker_idx <speaker_id>
-  ```
-
-- Run your own multi-speaker TTS model:
-
-  ```
-  $ tts --text "Text for TTS" --out_path output/path/speech.wav --model_path path/to/model.pth --config_path path/to/config.json --speakers_file_path path/to/speaker.json --speaker_idx <speaker_id>
-  ```
-
-### Voice Conversion Models
-
-```
-$ tts --out_path output/path/speech.wav --model_name "<language>/<dataset>/<model_name>" --source_wav <path/to/speaker/wav> --target_wav <path/to/reference/wav>
-```
-
-<!-- end-tts-readme -->
-
-## Directory Structure
-```
-|- notebooks/       (Jupyter Notebooks for model evaluation, parameter selection and data analysis.)
-|- utils/           (common utilities.)
-|- TTS
-    |- bin/             (folder for all the executables.)
-      |- train*.py                  (train your target model.)
-      |- ...
-    |- tts/             (text to speech models)
-        |- layers/          (model layer definitions)
-        |- models/          (model definitions)
-        |- utils/           (model specific utilities.)
-    |- speaker_encoder/ (Speaker Encoder models.)
-        |- (same)
-    |- vocoder/         (Vocoder models.)
-        |- (same)
-```
+</div>
