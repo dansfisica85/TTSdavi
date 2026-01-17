@@ -24,7 +24,7 @@ import numpy as np
 import soundfile as sf
 import gradio as gr
 
-from audio_separator import separar_audio
+from audio_separator import separar_audio, normalizar_caminho_audio
 from audio_mixer import mixar_audio
 
 
@@ -88,7 +88,9 @@ def treinar_voz_automatico(
         for i, arquivo in enumerate(arquivos_audio):
             progress((i + 1) / len(arquivos_audio) * 0.3, desc=f"Processando áudio {i+1}/{len(arquivos_audio)}...")
             
-            audio, sr = sf.read(arquivo, dtype='float32')
+            # Normalizar caminho para evitar problemas com caracteres especiais
+            arquivo_seguro = normalizar_caminho_audio(arquivo)
+            audio, sr = sf.read(arquivo_seguro, dtype='float32')
             duration = len(audio) / sr
             total_duration += duration
             

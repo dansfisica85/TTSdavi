@@ -50,13 +50,40 @@ def resample_audio(audio: np.ndarray, sr_original: int, sr_alvo: int) -> np.ndar
         return resampled
 
 
+def normalizar_caminho_audio(caminho: str) -> str:
+    """
+    Copia arquivo de áudio para um caminho temporário seguro se necessário.
+    Resolve problemas com espaços e caracteres especiais no nome.
+    """
+    import shutil
+    import re
+    
+    # Verificar se o caminho tem caracteres problemáticos
+    nome_arquivo = os.path.basename(caminho)
+    tem_problemas = bool(re.search(r'[\s\(\)\[\]\{\}\&\$\#\@\!\%\^]', nome_arquivo))
+    
+    if tem_problemas:
+        # Criar caminho temporário seguro
+        ext = Path(caminho).suffix
+        temp_dir = tempfile.mkdtemp(prefix="audio_safe_")
+        nome_seguro = f"audio_temp{ext}"
+        caminho_seguro = os.path.join(temp_dir, nome_seguro)
+        shutil.copy2(caminho, caminho_seguro)
+        return caminho_seguro
+    
+    return caminho
+
+
 def carregar_audio(caminho: str, sr_alvo: int = 44100) -> Tuple[torch.Tensor, int]:
     """
     Carrega arquivo de áudio usando soundfile.
     Suporta WAV, FLAC, OGG.
     """
+    # Normalizar caminho para evitar problemas com caracteres especiais
+    caminho_seguro = normalizar_caminho_audio(caminho)
+    
     # Carregar com soundfile
-    audio, sr = sf.read(caminho, dtype='float32')
+    audio, sr = sf.read(caminho_seguro, dtype='float32')
     
     # Converter para (channels, samples)
     if audio.ndim == 1:
