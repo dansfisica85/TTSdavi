@@ -32,6 +32,7 @@ python clonar_voz.py
 ```
 
 Isso abrirá uma interface web no navegador onde você pode:
+
 1. Fazer upload de um áudio de referência
 2. Digitar o texto desejado
 3. Selecionar o idioma
@@ -101,14 +102,17 @@ TTSdavi-1/
 ## 🔧 Solução de Problemas
 
 ### Erro: "CUDA out of memory"
+
 - Reduza o tamanho do texto
 - Use CPU ao invés de GPU (mais lento)
 
 ### Erro: "Model not found"
+
 - Na primeira execução, aguarde o download do modelo (~2GB)
 - Verifique sua conexão com a internet
 
 ### Áudio de saída com qualidade baixa
+
 - Use um áudio de referência de melhor qualidade
 - Aumente a duração do áudio de referência (5-10 segundos)
 
@@ -120,3 +124,4 @@ Este projeto é baseado no Coqui TTS e utiliza a licença MPL 2.0.
 
 - [Coqui TTS](https://github.com/coqui-ai/TTS) - Biblioteca base
 - [XTTS](https://huggingface.co/coqui/XTTS-v2) - Modelo de clonagem de voz
+<!-- trigger deploy -->
