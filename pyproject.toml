@@ -6,17 +6,15 @@ requires-python = ">=3.9"
 dependencies = [
     "fastapi>=0.109.0",
     "uvicorn>=0.25.0",
-    "gradio>=4.0.0",
 ]
 
 [build-system]
-requires = [
-    "setuptools",
-    "wheel",
-    "cython~=0.29.30",
-    "numpy>=1.22.0",
-    "packaging",
-]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+py-modules = []
+packages = []
 
 [flake8]
 max-line-length=120
