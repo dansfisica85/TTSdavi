@@ -1,18 +1,16 @@
-# Core dependencies (lightweight)
+# Minimal dependencies for Railway (CPU-only, lightweight)
+# PyTorch CPU-only minimal version
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.1.0+cpu
+torchaudio==2.1.0+cpu
+
+# Audio processing (lightweight)
 numpy>=1.22.0
-scipy>=1.11.0
 soundfile>=0.12.0
 librosa>=0.10.0
-pydub>=0.25.0
 
-# Gradio UI
+# Web UI
 gradio>=4.0.0
 
 # Utilities
 tqdm>=4.64.0
-requests>=2.28.0
-
-# PyTorch CPU-only (much smaller ~200MB vs 2GB)
---extra-index-url https://download.pytorch.org/whl/cpu
-torch
-torchaudio
