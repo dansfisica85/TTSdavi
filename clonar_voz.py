@@ -19,12 +19,35 @@ Ou execute sem argumentos para usar a interface interativa.
 
 import argparse
 import os
+import re
+import shutil
 import sys
 import tempfile
 from pathlib import Path
 
 import torch
 import torchaudio
+
+
+def normalizar_caminho_audio(caminho: str) -> str:
+    """
+    Copia arquivo de áudio para um caminho temporário seguro se necessário.
+    Resolve problemas com espaços e caracteres especiais no nome.
+    """
+    # Verificar se o caminho tem caracteres problemáticos
+    nome_arquivo = os.path.basename(caminho)
+    tem_problemas = bool(re.search(r'[\s\(\)\[\]\{\}\&\$\#\@\!\%\^]', nome_arquivo))
+    
+    if tem_problemas:
+        # Criar caminho temporário seguro
+        ext = Path(caminho).suffix
+        temp_dir = tempfile.mkdtemp(prefix="audio_safe_")
+        nome_seguro = f"audio_temp{ext}"
+        caminho_seguro = os.path.join(temp_dir, nome_seguro)
+        shutil.copy2(caminho, caminho_seguro)
+        return caminho_seguro
+    
+    return caminho
 
 
 def verificar_dependencias():
@@ -90,6 +113,9 @@ def clonar_voz(tts, audio_referencia: str, texto: str, idioma: str = "pt", arqui
     """
     if not os.path.exists(audio_referencia):
         raise FileNotFoundError(f"Arquivo de áudio de referência não encontrado: {audio_referencia}")
+    
+    # Normalizar caminho para evitar problemas com caracteres especiais
+    audio_referencia = normalizar_caminho_audio(audio_referencia)
     
     print(f"🎙️ Clonando voz de: {audio_referencia}")
     print(f"📝 Texto: {texto}")
