@@ -269,28 +269,29 @@ Arquivos gerados:
 # INTERFACE GRADIO SIMPLIFICADA
 # =============================================================================
 
+# CSS customizado
+CUSTOM_CSS = """
+.footer {
+    text-align: center;
+    padding: 20px;
+    margin-top: 20px;
+    border-top: 1px solid #ddd;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 10px;
+}
+.header-info {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 20px;
+    border-radius: 10px;
+    color: white;
+    margin-bottom: 20px;
+}
+"""
+
 def criar_interface():
     with gr.Blocks(
-        title="🎤 AI Cover Studio - Prof. Davi",
-        theme=gr.themes.Soft(),
-        css="""
-        .footer {
-            text-align: center;
-            padding: 20px;
-            margin-top: 20px;
-            border-top: 1px solid #ddd;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border-radius: 10px;
-        }
-        .header-info {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 20px;
-            border-radius: 10px;
-            color: white;
-            margin-bottom: 20px;
-        }
-        """
+        title="🎤 AI Cover Studio - Prof. Davi"
     ) as demo:
         
         # Cabeçalho com informações do desenvolvedor
@@ -421,9 +422,12 @@ if __name__ == "__main__":
     server_name = os.environ.get("GRADIO_SERVER_NAME", "127.0.0.1")
     server_port = int(os.environ.get("PORT", os.environ.get("GRADIO_SERVER_PORT", "7860")))
     
+    # Gradio 6.0: theme e css movidos para launch()
     demo.launch(
         server_name=server_name,
         server_port=server_port,
         share=False,
-        inbrowser=False
+        inbrowser=False,
+        theme=gr.themes.Soft(),
+        css=CUSTOM_CSS
     )
