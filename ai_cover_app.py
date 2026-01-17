@@ -416,4 +416,14 @@ if __name__ == "__main__":
     print("=" * 60)
     
     demo = criar_interface()
-    demo.launch(server_port=7861, share=False, inbrowser=True)
+    
+    # Configuração para Railway/produção
+    server_name = os.environ.get("GRADIO_SERVER_NAME", "127.0.0.1")
+    server_port = int(os.environ.get("GRADIO_SERVER_PORT", "7860"))
+    
+    demo.launch(
+        server_name=server_name,
+        server_port=server_port,
+        share=False,
+        inbrowser=False
+    )
