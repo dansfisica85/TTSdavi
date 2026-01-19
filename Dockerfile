@@ -40,6 +40,10 @@ COPY clonar_voz.py .
 COPY gradio_config.py .
 COPY upload_handler.py .
 
+# Copiar modelos pré-treinados se existirem
+COPY models/*.pth models/ 2>/dev/null || true
+COPY models/*.json models/ 2>/dev/null || true
+
 # Criar diretórios
 RUN mkdir -p models datasets output /tmp/gradio_uploads
 
