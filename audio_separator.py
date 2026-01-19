@@ -169,14 +169,12 @@ def separar_audio(
     # Separar - com tratamento de erro melhorado
     try:
         with torch.no_grad():
-            # Usar chunk_size menor para evitar problemas de memória
+            # Aplicar modelo Demucs
             sources = apply_model(
                 model, 
                 wav_norm, 
                 device=device, 
                 progress=True,
-                # Tenta usar chunk mode se disponível
-                override_cherry_limited=True,
             )
     except RuntimeError as e:
         if "out of memory" in str(e).lower():

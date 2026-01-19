@@ -410,11 +410,12 @@ CUSTOM_CSS = """
 }
 """
 
+# Theme global (para Gradio 6.x, passamos em launch())
+GRADIO_THEME = gr.themes.Soft()
+
 def criar_interface():
     with gr.Blocks(
         title="🎤 AI Cover Studio - Prof. Davi",
-        theme=gr.themes.Soft(),
-        css=CUSTOM_CSS
     ) as demo:
         
         # Cabeçalho com informações do desenvolvedor
@@ -566,6 +567,9 @@ if __name__ == "__main__":
     
     # Obter configurações otimizadas
     launch_kwargs = GradioConfig.get_launch_kwargs()
+    
+    # Adicionar theme e css para Gradio 6.x
+    launch_kwargs["css"] = CUSTOM_CSS
     
     logger.info(f"🌐 Iniciando servidor em {launch_kwargs['server_name']}:{launch_kwargs['server_port']}")
     
