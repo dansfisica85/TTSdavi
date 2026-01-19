@@ -433,6 +433,28 @@ def criar_interface():
                     inputs=[musica_input, modelo_dropdown],
                     outputs=[audio_output, status_cover]
                 )
+
+            # Tab 3: Baixar modelo RVC pronto
+            with gr.TabItem("📥 Baixar Modelo RVC"):
+                gr.Markdown("""
+                Cole uma URL direta para um modelo RVC (.pth) e opcionalmente um arquivo de index (.index).
+                Exemplo: link direto do Hugging Face (botão "Download" → "Copy link").
+                """)
+
+                with gr.Row():
+                    with gr.Column():
+                        url_modelo = gr.Textbox(label="URL do modelo (.pth)")
+                        url_index = gr.Textbox(label="URL do index (.index) (opcional)")
+                        nome_modelo_dl = gr.Textbox(label="Nome para salvar (sem espaços)", placeholder="minha_voz_pronta")
+                        btn_baixar = gr.Button("⬇️ Baixar e adicionar", variant="primary")
+                    with gr.Column():
+                        status_download = gr.Textbox(label="Status do download", lines=6, interactive=False)
+
+                btn_baixar.click(
+                    fn=baixar_modelo_rvc,
+                    inputs=[url_modelo, nome_modelo_dl, url_index],
+                    outputs=[status_download, modelo_dropdown]
+                )
         
         # Rodapé com informações do desenvolvedor
         gr.HTML(f"""
