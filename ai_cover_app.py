@@ -48,6 +48,7 @@ except Exception as _patch_err:  # pragma: no cover
 
 from audio_separator import separar_audio, normalizar_caminho_audio
 from audio_mixer import mixar_audio
+from voice_trainer import treinar_modelo_voz, ConversorVozFreeVC
 
 
 # Informações do Desenvolvedor
@@ -121,112 +122,96 @@ def baixar_modelo_rvc(
 
 
 # =============================================================================
-# TREINAMENTO AUTOMÁTICO
+# TREINAMENTO AUTOMÁTICO DE VOZ
 # =============================================================================
 
 def treinar_voz_automatico(
     arquivos_audio: List[str],
     nome_modelo: str,
     progress=gr.Progress()
-) -> str:
-    """Treina modelo de voz AUTOMATICAMENTE com configurações otimizadas."""
+) -> Tuple[str, gr.Dropdown]:
+    """Treina modelo de voz REAL com extração de embeddings."""
     
     if not arquivos_audio:
-        return "❌ Faça upload de arquivos de áudio da voz que deseja clonar."
+        return "❌ Faça upload de arquivos de áudio da voz que deseja clonar.", gr.update()
     
     if not nome_modelo or nome_modelo.strip() == "":
-        return "❌ Dê um nome para o modelo (ex: minha_voz)"
+        return "❌ Dê um nome para o modelo (ex: minha_voz)", gr.update()
     
     nome_modelo = nome_modelo.strip().replace(" ", "_")
     
     try:
-        progress(0.1, desc="📁 Preparando dataset...")
-        
         # Criar diretório do dataset
         dataset_dir = DATASETS_DIR / nome_modelo
         dataset_dir.mkdir(exist_ok=True)
         
-        # Processar áudios
-        total_duration = 0
+        # Copiar e processar áudios para o dataset
+        progress(0.05, desc="📁 Preparando áudios...")
+        arquivos_processados = []
+        
         for i, arquivo in enumerate(arquivos_audio):
-            pct = 0.1 + (i / len(arquivos_audio)) * 0.4
-            progress(pct, desc=f"Processando áudio {i+1}/{len(arquivos_audio)}...")
+            pct = 0.05 + (i / len(arquivos_audio)) * 0.15
+            progress(pct, desc=f"Copiando áudio {i+1}/{len(arquivos_audio)}...")
             
             try:
-                # Normalizar caminho para evitar problemas com caracteres especiais
                 arquivo_seguro = normalizar_caminho_audio(arquivo)
                 
-                # Usar librosa para carregar - mais eficiente para arquivos grandes
-                # Já faz resample automaticamente
+                # Carregar e salvar em formato padrão
                 import librosa
-                audio, sr = librosa.load(arquivo_seguro, sr=40000, mono=True)
+                audio, sr = librosa.load(arquivo_seguro, sr=16000, mono=True)
                 
-                duration = len(audio) / sr
-                total_duration += duration
-                
-                # Limitar a 5 minutos por arquivo para evitar travamento
-                max_samples = 40000 * 60 * 5  # 5 minutos
+                # Limitar a 3 minutos por arquivo
+                max_samples = 16000 * 60 * 3
                 if len(audio) > max_samples:
                     audio = audio[:max_samples]
-                    print(f"Áudio {i+1} truncado para 5 minutos")
                 
-                # Salvar em formato padrão
                 dest = dataset_dir / f"audio_{i:04d}.wav"
-                sf.write(str(dest), audio, 40000)
+                sf.write(str(dest), audio, 16000)
+                arquivos_processados.append(str(dest))
                 
             except Exception as e:
                 print(f"Erro processando áudio {i+1}: {e}")
                 continue
         
-        if total_duration == 0:
-            return "❌ Nenhum áudio pôde ser processado. Verifique os arquivos."
+        if not arquivos_processados:
+            return "❌ Nenhum áudio pôde ser processado. Verifique os arquivos.", gr.update()
         
-        progress(0.6, desc="🎓 Preparando modelo...")
+        # Treinar modelo usando voice_trainer
+        def progress_callback(pct, msg):
+            # Mapear 0-1 para 0.2-0.95
+            mapped_pct = 0.2 + pct * 0.75
+            progress(mapped_pct, desc=msg)
         
-        # Verificar se RVC está disponível
-        rvc_dir = BASE_DIR / "rvc"
+        modelo_path = treinar_modelo_voz(
+            arquivos_audio=arquivos_processados,
+            nome_modelo=nome_modelo,
+            diretorio_saida=str(MODELS_DIR),
+            progress_callback=progress_callback,
+        )
         
-        progress(0.8, desc="💾 Salvando modelo...")
-        
-        # Criar arquivo de modelo
-        modelo_path = MODELS_DIR / f"{nome_modelo}.pth"
-        
-        # Se tiver um modelo base, usar como template
-        modelo_base = None
-        if rvc_dir.exists():
-            modelo_base = rvc_dir / "assets" / "weights" / "f0G40k.pth"
-        
-        if modelo_base and modelo_base.exists():
-            shutil.copy(modelo_base, modelo_path)
-        else:
-            # Criar placeholder com estrutura mínima
-            modelo_data = {
-                "name": nome_modelo,
-                "trained": True,
-                "total_duration": total_duration,
-                "config": [256, 1, 32000, 512, 2048, 192, 0, 0, 0, 0, 0, 40000],
-                "weight": {},
-            }
-            torch.save(modelo_data, modelo_path)
+        # Carregar info do modelo
+        modelo_data = torch.load(modelo_path, map_location="cpu")
+        metadata = modelo_data.get("metadata", {})
+        total_duration = metadata.get("total_duration", 0)
         
         progress(1.0, desc="✅ Treinamento concluído!")
         
-        return f"""✅ MODELO PREPARADO COM SUCESSO!
+        return f"""✅ MODELO TREINADO COM SUCESSO!
 
 📁 Nome: {nome_modelo}
-⏱️ Áudio usado: {total_duration/60:.1f} minutos
+⏱️ Áudio usado: {total_duration:.1f} segundos ({total_duration/60:.1f} minutos)
+🎤 Arquivos processados: {len(arquivos_processados)}
 💾 Salvo em: {modelo_path}
 
-Agora vá para a aba "🎵 Criar AI Cover" e selecione este modelo!
+🎵 Agora vá para a aba "Criar AI Cover" e selecione este modelo!
 
-⚠️ NOTA: Este é um modelo placeholder para testes.
-Para conversão de voz real com alta qualidade, 
-você precisará treinar um modelo RVC completo."""
+✨ O modelo contém embeddings reais da sua voz.
+A conversão aplicará as características vocais extraídas.""", gr.update(choices=listar_modelos(), value=nome_modelo)
 
     except Exception as e:
         import traceback
         traceback.print_exc()
-        return f"❌ Erro: {str(e)}"
+        return f"❌ Erro: {str(e)}", gr.update()
 
 
 # =============================================================================
