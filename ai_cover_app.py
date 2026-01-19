@@ -424,7 +424,8 @@ if __name__ == "__main__":
     demo.launch(
         server_name=server_name,
         server_port=server_port,
-        share=False,
+        # Railway executa atrás de proxy; share=True evita erro de localhost inacessível
+        share=True,
         inbrowser=False,
         show_error=True
     )
