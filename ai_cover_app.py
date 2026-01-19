@@ -329,8 +329,17 @@ def criar_ai_cover_automatico(
             import soundfile as sf
             vocal_audio, sr = sf.read(vocal_path)
             inst_audio, _ = sf.read(instrumental_path)
-            logger.info(f"Vocal separado: max={np.abs(vocal_audio).max():.4f}, shape={vocal_audio.shape}")
-            logger.info(f"Instrumental: max={np.abs(inst_audio).max():.4f}, shape={inst_audio.shape}")
+            vocal_max = np.abs(vocal_audio).max()
+            inst_max = np.abs(inst_audio).max()
+            logger.info(f"Vocal separado: max={vocal_max:.4f}, shape={vocal_audio.shape}")
+            logger.info(f"Instrumental: max={inst_max:.4f}, shape={inst_audio.shape}")
+            
+            # Se vocal está muito baixo, normalizar
+            if vocal_max < 0.01 and vocal_max > 0:
+                logger.warning(f"⚠️ Vocal muito baixo ({vocal_max:.4f}), normalizando...")
+                vocal_audio = vocal_audio * (0.5 / vocal_max)
+                sf.write(vocal_path, vocal_audio, sr)
+                logger.info(f"Vocal normalizado para max={np.abs(vocal_audio).max():.4f}")
             
             progress(0.5, desc="✅ Separação concluída!")
         except Exception as e:

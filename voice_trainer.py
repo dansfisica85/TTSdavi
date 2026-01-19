@@ -328,12 +328,21 @@ class ConversorVozFreeVC:
                 audio_convertido = audio_convertido[:min_len]
                 audio_convertido = mix_ratio * audio_convertido + (1 - mix_ratio) * audio
             
-            # Normalizar
-            audio_convertido = audio_convertido / (np.abs(audio_convertido).max() + 1e-8)
+            # Normalizar para evitar clipping
+            max_val = np.abs(audio_convertido).max()
+            print(f"   Nível antes da normalização: {max_val:.4f}")
+            
+            if max_val > 0.001:  # Se tem áudio significativo
+                if max_val > 1.0:
+                    audio_convertido = audio_convertido * (0.95 / max_val)
+                elif max_val < 0.1:  # Volume muito baixo, amplificar
+                    audio_convertido = audio_convertido * (0.7 / max_val)
+            else:
+                print(f"   ⚠️ AVISO: Áudio quase silencioso!")
             
             # Salvar
-            sf.write(audio_saida, audio_convertido, sr)
-            print(f"✅ Conversão salva: {audio_saida}")
+            sf.write(audio_saida, audio_convertido.astype(np.float32), sr)
+            print(f"✅ Conversão salva: {audio_saida} (max={np.abs(audio_convertido).max():.4f})")
             
             return audio_saida
             
