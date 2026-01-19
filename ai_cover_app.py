@@ -24,6 +24,27 @@ import numpy as np
 import soundfile as sf
 import gradio as gr
 
+# Workaround: gradio_client crashes on bool schemas (TypeError: 'bool' not iterable)
+# Monkeypatch json_schema_to_python_type to ignore pure-boolean schemas
+try:
+    import gradio_client.utils as _gc_utils
+
+    _orig_json_schema_to_python_type = _gc_utils._json_schema_to_python_type
+
+    def _safe_json_schema_to_python_type(schema, defs=None):
+        if isinstance(schema, bool):
+            return "Any"
+        return _orig_json_schema_to_python_type(schema, defs)
+
+    def _safe_json_schema_to_python_type_public(schema):
+        defs = schema.get("$defs") if isinstance(schema, dict) else None
+        return _safe_json_schema_to_python_type(schema, defs)
+
+    _gc_utils._json_schema_to_python_type = _safe_json_schema_to_python_type
+    _gc_utils.json_schema_to_python_type = _safe_json_schema_to_python_type_public
+except Exception as _patch_err:  # pragma: no cover
+    print(f"[gradio-client patch] falhou ao aplicar workaround: {_patch_err}")
+
 from audio_separator import separar_audio, normalizar_caminho_audio
 from audio_mixer import mixar_audio
 
