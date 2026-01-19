@@ -414,13 +414,17 @@ if __name__ == "__main__":
     demo = criar_interface()
     
     # Configuração para Railway/produção
-    server_name = os.environ.get("GRADIO_SERVER_NAME", "127.0.0.1")
+    # IMPORTANTE: usar 0.0.0.0 para aceitar conexões externas
+    server_name = os.environ.get("GRADIO_SERVER_NAME", "0.0.0.0")
     server_port = int(os.environ.get("PORT", os.environ.get("GRADIO_SERVER_PORT", "7860")))
     
-    # Gradio 6.0: theme e css no Blocks
+    print(f"🌐 Iniciando servidor em {server_name}:{server_port}")
+    
+    # Gradio: configuração para produção
     demo.launch(
         server_name=server_name,
         server_port=server_port,
         share=False,
-        inbrowser=False
+        inbrowser=False,
+        show_error=True
     )
