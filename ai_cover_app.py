@@ -23,6 +23,7 @@ import torch
 import numpy as np
 import soundfile as sf
 import gradio as gr
+import requests
 
 # Workaround: gradio_client crashes on bool schemas (TypeError: 'bool' not iterable)
 # Monkeypatch json_schema_to_python_type to ignore pure-boolean schemas
@@ -76,6 +77,47 @@ def listar_modelos() -> List[str]:
     for f in MODELS_DIR.glob("*.pth"):
         modelos.append(f.stem)
     return modelos if modelos else ["Nenhum modelo treinado"]
+
+
+def _download_file(url: str, destino: Path):
+    """Faz download de um arquivo via HTTP para o caminho destino."""
+    with requests.get(url, stream=True, timeout=60) as r:
+        r.raise_for_status()
+        destino.parent.mkdir(parents=True, exist_ok=True)
+        with open(destino, "wb") as f:
+            for chunk in r.iter_content(chunk_size=8192):
+                if chunk:
+                    f.write(chunk)
+
+
+def baixar_modelo_rvc(
+    url_modelo: str,
+    nome_modelo: str,
+    url_index: Optional[str] = "",
+    progress=gr.Progress(),
+) -> Tuple[str, gr.Dropdown]:
+    """Baixa um modelo RVC pronto (.pth) e opcionalmente o index (.index)."""
+
+    if not url_modelo or not nome_modelo:
+        return "❌ Informe a URL do modelo (.pth) e um nome.", gr.update()
+
+    nome_modelo = nome_modelo.strip().replace(" ", "_")
+    destino_pth = MODELS_DIR / f"{nome_modelo}.pth"
+    destino_index = MODELS_DIR / f"{nome_modelo}.index" if url_index else None
+
+    try:
+        progress(0.1, desc="🔽 Baixando modelo (.pth)...")
+        _download_file(url_modelo, destino_pth)
+
+        if url_index:
+            progress(0.6, desc="🔽 Baixando index (.index)...")
+            _download_file(url_index, destino_index)
+
+        progress(1.0, desc="✅ Download concluído!")
+        status = f"✅ Modelo salvo em: {destino_pth}\nIndex: {destino_index if url_index else '—'}"
+        return status, gr.update(choices=listar_modelos(), value=nome_modelo)
+    except Exception as e:
+        return f"❌ Erro ao baixar: {e}", gr.update()
 
 
 # =============================================================================
