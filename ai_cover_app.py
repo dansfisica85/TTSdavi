@@ -389,12 +389,6 @@ def criar_interface():
                     
                     with gr.Column():
                         status_treino = gr.Textbox(label="📋 Status", lines=12, interactive=False)
-                
-                btn_treinar.click(
-                    fn=treinar_voz_automatico,
-                    inputs=[audios_treino, nome_modelo],
-                    outputs=[status_treino, modelo_dropdown]
-                )
             
             # Tab 2: Criar AI Cover
             with gr.TabItem("🎵 Criar AI Cover"):
@@ -451,6 +445,13 @@ def criar_interface():
                     inputs=[url_modelo, nome_modelo_dl, url_index],
                     outputs=[status_download, modelo_dropdown]
                 )
+        
+        # Conectar eventos que dependem de componentes de outras abas (após todas as abas serem criadas)
+        btn_treinar.click(
+            fn=treinar_voz_automatico,
+            inputs=[audios_treino, nome_modelo],
+            outputs=[status_treino, modelo_dropdown]
+        )
         
         # Rodapé com informações do desenvolvedor
         gr.HTML(f"""
