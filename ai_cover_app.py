@@ -239,10 +239,16 @@ def criar_ai_cover_automatico(
         # Passo 1: Separar vocais
         progress(0.1, desc="✂️ Iniciando separação de vocais e instrumentais...")
         
+        def progress_sep_callback(pct, msg):
+            """Mapeia progresso de separação (0.1 a 0.5) para UI"""
+            mapped_pct = 0.1 + (pct * 0.4)
+            progress(mapped_pct, desc=f"✂️ {msg}")
+        
         try:
             vocal_path, instrumental_path = separar_audio(
                 arquivo_musica,
-                diretorio_saida=str(output_subdir)
+                diretorio_saida=str(output_subdir),
+                progress_callback=progress_sep_callback
             )
             progress(0.5, desc="✅ Separação concluída!")
         except Exception as e:
@@ -251,7 +257,9 @@ def criar_ai_cover_automatico(
 Possíveis soluções:
 1. Verifique se o arquivo de áudio é válido (WAV, FLAC ou OGG)
 2. Verifique se o Demucs está instalado: pip install demucs
-3. Verifique se há espaço em disco suficiente"""
+3. Verifique se há espaço em disco suficiente
+4. Tente usar um arquivo de áudio mais curto
+5. Se estiver usando GPU, verifique se há memória suficiente"""
         
         # Passo 2: Converter vocal com o modelo treinado
         progress(0.6, desc="🎤 Aplicando sua voz ao vocal...")

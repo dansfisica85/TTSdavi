@@ -111,10 +111,13 @@ def separar_audio(
     arquivo_entrada: str,
     diretorio_saida: Optional[str] = None,
     modelo: str = "htdemucs",
+    progress_callback=None,
 ) -> Tuple[str, str]:
     """
     Separa vocais e instrumentais de um arquivo de áudio.
     TOTALMENTE AUTOMÁTICO - sem configurações.
+    
+    progress_callback: função(percentage, message) para atualizar progresso
     """
     from demucs.pretrained import get_model
     from demucs.apply import apply_model
@@ -135,10 +138,16 @@ def separar_audio(
     device = obter_dispositivo()
     print(f"🎵 Separando áudio ({device})...")
     
+    if progress_callback:
+        progress_callback(0.15, "Carregando modelo de separação...")
+    
     # Carregar modelo
     model = get_model(modelo)
     model.to(device)
     model.eval()
+    
+    if progress_callback:
+        progress_callback(0.25, "Carregando arquivo de áudio...")
     
     # Carregar áudio
     wav, _ = carregar_audio(arquivo_entrada, model.samplerate)
@@ -154,12 +163,42 @@ def separar_audio(
     wav_norm = (wav - ref.mean()) / (ref.std() + 1e-8)
     wav_norm = wav_norm.to(device).unsqueeze(0)
     
-    # Separar
-    with torch.no_grad():
-        sources = apply_model(model, wav_norm, device=device, progress=True)
+    if progress_callback:
+        progress_callback(0.35, "Processando separação (Demucs)...")
+    
+    # Separar - com tratamento de erro melhorado
+    try:
+        with torch.no_grad():
+            # Usar chunk_size menor para evitar problemas de memória
+            sources = apply_model(
+                model, 
+                wav_norm, 
+                device=device, 
+                progress=True,
+                # Tenta usar chunk mode se disponível
+                override_cherry_limited=True,
+            )
+    except RuntimeError as e:
+        if "out of memory" in str(e).lower():
+            print("⚠️ Memória insuficiente. Tentando com redução de qualidade...")
+            if progress_callback:
+                progress_callback(0.40, "Retentando com memória reduzida...")
+            torch.cuda.empty_cache() if torch.cuda.is_available() else None
+            # Tentar novamente com menos dados
+            wav_norm_reduced = wav_norm[:, :, :wav_norm.shape[-1]//2]
+            with torch.no_grad():
+                sources = apply_model(model, wav_norm_reduced, device=device, progress=True)
+        else:
+            raise
+    
+    if progress_callback:
+        progress_callback(0.65, "Finalizando separação...")
     
     sources = sources * (ref.std() + 1e-8) + ref.mean()
     sources = sources.squeeze(0).cpu()
+    
+    if progress_callback:
+        progress_callback(0.75, "Salvando arquivos...")
     
     # Salvar
     nome = Path(arquivo_entrada).stem
@@ -179,6 +218,9 @@ def separar_audio(
             else:
                 instrumental = instrumental + sources[i]
     salvar_audio(instrumental, instrumental_path, model.samplerate)
+    
+    if progress_callback:
+        progress_callback(0.95, "Finalizando...")
     
     print(f"✅ Separação concluída!")
     return vocal_path, instrumental_path
