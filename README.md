@@ -21,7 +21,7 @@
 |---|---|
 | **Nome** | Professor Davi Antonino Nunes da Silva |
 | **Contato** | (16) 99260-4315 |
-| **E-mail** | professordavi85@gmail.com |
+| **E-mail** | <professordavi85@gmail.com> |
 
 ---
 
@@ -49,6 +49,7 @@ O **AI Cover Studio** é um sistema completo e automatizado para criação de **
 ### O que são AI Covers?
 
 AI Covers são recriações de músicas onde:
+
 1. A voz original do cantor é **removida** da música
 2. Uma nova voz (clonada por IA) **canta** a mesma melodia
 3. A voz clonada é **mixada** de volta com os instrumentos originais
@@ -60,26 +61,31 @@ Isso permite, por exemplo, ouvir como seria se um artista diferente cantasse det
 ## ✨ Funcionalidades
 
 ### 🎙️ Clonagem de Voz
+
 - Clone qualquer voz a partir de **3-10 segundos** de áudio
 - Suporte a **16 idiomas** incluindo Português Brasileiro
 - Modelo XTTS v2 da Coqui TTS
 
 ### 🎵 Separação de Áudio
+
 - Separa **vocais** e **instrumentais** de qualquer música
 - Usa tecnologia **Demucs** (Meta AI)
 - Alta qualidade de separação
 
 ### 🔄 Conversão de Voz (RVC)
+
 - Converte vocais usando modelos **RVC** (Retrieval-based Voice Conversion)
 - Treinamento de modelos personalizados
 - Preserva entonação e emoção
 
 ### 🎛️ Mixagem Automática
+
 - Combina vocal convertido com instrumental
 - Ajuste automático de volume
 - Normalização profissional
 
 ### 🌐 Interface Web
+
 - Interface **Gradio** intuitiva
 - 100% automatizado - apenas upload e download
 - Funciona no navegador
@@ -152,6 +158,7 @@ USUÁRIO                          SISTEMA                              RESULTADO
 ---
 
 ### ETAPA 1: Upload e Validação
+
 **Arquivo:** `ai_cover_app.py` → função `criar_ai_cover()`
 
 ```python
@@ -171,6 +178,7 @@ def criar_ai_cover(arquivo_musica, modelo_selecionado, volume_vocal, volume_inst
 ```
 
 **O que acontece:**
+
 1. Gradio recebe o arquivo via interface web
 2. Arquivo é salvo temporariamente no servidor
 3. Sistema valida formato e tamanho
@@ -179,6 +187,7 @@ def criar_ai_cover(arquivo_musica, modelo_selecionado, volume_vocal, volume_inst
 ---
 
 ### ETAPA 2: Separação de Áudio (Demucs)
+
 **Arquivo:** `audio_separator.py` → função `separar_audio()`
 
 ```python
@@ -259,6 +268,7 @@ def separar_audio(arquivo_entrada, diretorio_saida, modelo="htdemucs"):
 ---
 
 ### ETAPA 3: Conversão de Voz (RVC)
+
 **Arquivo:** `voice_converter.py` → classe `ConversorVoz`
 
 ```python
@@ -357,6 +367,7 @@ class ConversorVoz:
 ---
 
 ### ETAPA 4: Mixagem Final
+
 **Arquivo:** `audio_mixer.py` → função `mixar_audio()`
 
 ```python
@@ -440,6 +451,7 @@ def mixar_audio(vocal_path, instrumental_path, output_path,
 ---
 
 ### ETAPA 5: Entrega ao Usuário
+
 **Arquivo:** `ai_cover_app.py` → interface Gradio
 
 ```python
@@ -533,9 +545,9 @@ docker run -p 7860:7860 ai-cover-studio
 
 ### Interface Web (Recomendado)
 
-1. Acesse https://ttsdavi-production.up.railway.app ou execute localmente
+1. Acesse <https://ttsdavi-production.up.railway.app> ou execute localmente
 2. **Aba "Treinar Voz"**: Faça upload de áudios para criar um modelo de voz
-3. **Aba "Criar AI Cover"**: 
+3. **Aba "Criar AI Cover"**:
    - Upload da música
    - Selecione o modelo de voz
    - Ajuste volumes
@@ -690,6 +702,7 @@ python ai_cover_app.py
 Este projeto está licenciado sob a **Mozilla Public License 2.0** (MPL 2.0).
 
 Baseado em:
+
 - [Coqui TTS](https://github.com/coqui-ai/TTS) - Síntese de voz
 - [Demucs](https://github.com/facebookresearch/demucs) - Separação de áudio
 - [RVC](https://github.com/RVC-Project/Retrieval-based-Voice-Conversion-WebUI) - Conversão de voz
@@ -700,6 +713,6 @@ Baseado em:
 
 **Desenvolvido com ❤️ por Professor Davi Antonino Nunes da Silva**
 
-📞 (16) 99260-4315 | 📧 professordavi85@gmail.com
+📞 (16) 99260-4315 | 📧 <professordavi85@gmail.com>
 
 </div>

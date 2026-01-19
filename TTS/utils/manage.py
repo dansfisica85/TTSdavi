@@ -594,22 +594,93 @@ class ModelManager(object):
 
     @staticmethod
     def _download_model_files(file_urls, output_folder, progress_bar):
-        """Download the github releases"""
+        """Download the github releases with retry and timeout support"""
+        import time
+        max_retries = 3
+        timeout = 60  # timeout em segundos para cada chunk
+        
         for file_url in file_urls:
-            # download the file
-            r = requests.get(file_url, stream=True)
-            # extract the file
             bease_filename = file_url.split("/")[-1]
             temp_zip_name = os.path.join(output_folder, bease_filename)
-            total_size_in_bytes = int(r.headers.get("content-length", 0))
-            block_size = 1024  # 1 Kibibyte
-            with open(temp_zip_name, "wb") as file:
-                if progress_bar:
-                    ModelManager.tqdm_progress = tqdm(total=total_size_in_bytes, unit="iB", unit_scale=True)
-                for data in r.iter_content(block_size):
-                    if progress_bar:
-                        ModelManager.tqdm_progress.update(len(data))
-                    file.write(data)
+            
+            for attempt in range(max_retries):
+                try:
+                    print(f" > Downloading {bease_filename} (attempt {attempt + 1}/{max_retries})...")
+                    
+                    # Verificar se já existe download parcial
+                    existing_size = 0
+                    if os.path.exists(temp_zip_name):
+                        existing_size = os.path.getsize(temp_zip_name)
+                    
+                    headers = {}
+                    if existing_size > 0:
+                        headers["Range"] = f"bytes={existing_size}-"
+                        print(f" > Resuming download from {existing_size} bytes...")
+                    
+                    # download the file with timeout
+                    r = requests.get(file_url, stream=True, headers=headers, timeout=timeout)
+                    
+                    if r.status_code == 416:  # Range not satisfiable - file already complete
+                        print(f" > {bease_filename} already downloaded.")
+                        break
+                    
+                    r.raise_for_status()
+                    
+                    # extract the file
+                    total_size_in_bytes = int(r.headers.get("content-length", 0))
+                    if existing_size > 0 and "content-range" in r.headers:
+                        total_size_in_bytes += existing_size
+                    
+                    block_size = 8192  # 8 KB chunks para melhor performance
+                    mode = "ab" if existing_size > 0 else "wb"
+                    
+                    with open(temp_zip_name, mode) as file:
+                        if progress_bar:
+                            ModelManager.tqdm_progress = tqdm(
+                                total=total_size_in_bytes,
+                                initial=existing_size,
+                                unit="iB",
+                                unit_scale=True,
+                                desc=bease_filename[:20]
+                            )
+                        downloaded = existing_size
+                        last_progress_time = time.time()
+                        
+                        for data in r.iter_content(block_size):
+                            if not data:
+                                continue
+                            file.write(data)
+                            downloaded += len(data)
+                            if progress_bar:
+                                ModelManager.tqdm_progress.update(len(data))
+                            
+                            # Reset timer on progress
+                            current_time = time.time()
+                            if current_time - last_progress_time > timeout:
+                                raise requests.exceptions.Timeout("Download stalled")
+                            last_progress_time = current_time
+                        
+                        if progress_bar and ModelManager.tqdm_progress:
+                            ModelManager.tqdm_progress.close()
+                    
+                    print(f" > {bease_filename} downloaded successfully!")
+                    break  # Success, exit retry loop
+                    
+                except (requests.exceptions.Timeout, requests.exceptions.ConnectionError) as e:
+                    print(f" > Download timeout/error for {bease_filename}: {e}")
+                    if progress_bar and ModelManager.tqdm_progress:
+                        ModelManager.tqdm_progress.close()
+                    if attempt < max_retries - 1:
+                        wait_time = (attempt + 1) * 5
+                        print(f" > Retrying in {wait_time} seconds...")
+                        time.sleep(wait_time)
+                    else:
+                        raise Exception(f"Failed to download {bease_filename} after {max_retries} attempts")
+                except Exception as e:
+                    print(f" > Error downloading {bease_filename}: {e}")
+                    if progress_bar and ModelManager.tqdm_progress:
+                        ModelManager.tqdm_progress.close()
+                    raise
 
     @staticmethod
     def _check_dict_key(my_dict, key):

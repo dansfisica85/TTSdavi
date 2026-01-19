@@ -1,4 +1,5 @@
 # Dockerfile leve para Railway - AI Cover Studio
+# Build version: 2026-01-19
 FROM python:3.10-slim
 
 ENV PYTHONUNBUFFERED=1
