@@ -37,16 +37,13 @@ class GradioConfig:
     @staticmethod
     def get_launch_kwargs():
         """Retorna argumentos otimizados para gr.demo.launch()"""
-        return {
+        kwargs = {
             # Básico
             "server_name": os.environ.get("GRADIO_SERVER_NAME", "0.0.0.0"),
             "server_port": int(os.environ.get("PORT", os.environ.get("GRADIO_SERVER_PORT", "7860"))),
             
             # Upload e Request
             "max_file_size": f"{GradioConfig.MAX_FILE_SIZE_MB}mb",
-            
-            # Timeouts
-            "max_size": GradioConfig.MAX_FILE_SIZE_MB * 1024 * 1024,  # bytes
             
             # Interface
             "show_error": True,
@@ -58,17 +55,20 @@ class GradioConfig:
             # Performance
             "quiet": False,
             
-            # SSL (se necessário)
-            "ssl_certfile": os.environ.get("SSL_CERTFILE"),
-            "ssl_keyfile": os.environ.get("SSL_KEYFILE"),
-            "ssl_verify": os.environ.get("SSL_VERIFY", "true").lower() == "true",
-            
             # Proxy
             "root_path": os.environ.get("GRADIO_ROOT_PATH", ""),
-            
-            # Analytics (desabilitar em produção)
-            "analytics_enabled": False,
         }
+        
+        # Adicionar SSL apenas se definido
+        ssl_certfile = os.environ.get("SSL_CERTFILE")
+        ssl_keyfile = os.environ.get("SSL_KEYFILE")
+        if ssl_certfile:
+            kwargs["ssl_certfile"] = ssl_certfile
+        if ssl_keyfile:
+            kwargs["ssl_keyfile"] = ssl_keyfile
+            
+        # Filtrar valores None
+        return {k: v for k, v in kwargs.items() if v is not None and v != ""}
     
     @staticmethod
     def get_gradio_environment_vars():
