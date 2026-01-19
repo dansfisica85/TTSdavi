@@ -86,52 +86,42 @@ def treinar_voz_automatico(
         # Processar áudios
         total_duration = 0
         for i, arquivo in enumerate(arquivos_audio):
-            progress((i + 1) / len(arquivos_audio) * 0.3, desc=f"Processando áudio {i+1}/{len(arquivos_audio)}...")
+            pct = 0.1 + (i / len(arquivos_audio)) * 0.4
+            progress(pct, desc=f"Processando áudio {i+1}/{len(arquivos_audio)}...")
             
-            # Normalizar caminho para evitar problemas com caracteres especiais
-            arquivo_seguro = normalizar_caminho_audio(arquivo)
-            audio, sr = sf.read(arquivo_seguro, dtype='float32')
-            duration = len(audio) / sr
-            total_duration += duration
-            
-            # Salvar em formato padrão
-            dest = dataset_dir / f"audio_{i:04d}.wav"
-            
-            # Converter para mono se necessário
-            if audio.ndim > 1:
-                audio = audio.mean(axis=1)
-            
-            # Resample para 40kHz (padrão RVC)
-            if sr != 40000:
-                from scipy import signal
-                num_samples = int(len(audio) * 40000 / sr)
-                audio = signal.resample(audio, num_samples)
-            
-            sf.write(str(dest), audio, 40000)
+            try:
+                # Normalizar caminho para evitar problemas com caracteres especiais
+                arquivo_seguro = normalizar_caminho_audio(arquivo)
+                
+                # Usar librosa para carregar - mais eficiente para arquivos grandes
+                # Já faz resample automaticamente
+                import librosa
+                audio, sr = librosa.load(arquivo_seguro, sr=40000, mono=True)
+                
+                duration = len(audio) / sr
+                total_duration += duration
+                
+                # Limitar a 5 minutos por arquivo para evitar travamento
+                max_samples = 40000 * 60 * 5  # 5 minutos
+                if len(audio) > max_samples:
+                    audio = audio[:max_samples]
+                    print(f"Áudio {i+1} truncado para 5 minutos")
+                
+                # Salvar em formato padrão
+                dest = dataset_dir / f"audio_{i:04d}.wav"
+                sf.write(str(dest), audio, 40000)
+                
+            except Exception as e:
+                print(f"Erro processando áudio {i+1}: {e}")
+                continue
         
-        progress(0.4, desc="🎓 Iniciando treinamento automático...")
+        if total_duration == 0:
+            return "❌ Nenhum áudio pôde ser processado. Verifique os arquivos."
+        
+        progress(0.6, desc="🎓 Preparando modelo...")
         
         # Verificar se RVC está disponível
         rvc_dir = BASE_DIR / "rvc"
-        if not rvc_dir.exists():
-            return "❌ RVC não encontrado. Clone o repositório RVC primeiro."
-        
-        # Adicionar ao path
-        if str(rvc_dir) not in sys.path:
-            sys.path.insert(0, str(rvc_dir))
-        
-        progress(0.5, desc="🔄 Preparando treinamento RVC...")
-        
-        # Tentar usar o treinamento real do RVC
-        try:
-            from infer.modules.train import preprocess, extract, train
-            
-            progress(0.6, desc="🔄 Pré-processando áudios...")
-            # O treinamento real do RVC seria iniciado aqui
-            # Por enquanto, criamos um modelo placeholder
-            
-        except ImportError:
-            print("Módulos de treinamento RVC não encontrados, usando modo simplificado")
         
         progress(0.8, desc="💾 Salvando modelo...")
         
@@ -139,8 +129,11 @@ def treinar_voz_automatico(
         modelo_path = MODELS_DIR / f"{nome_modelo}.pth"
         
         # Se tiver um modelo base, usar como template
-        modelo_base = rvc_dir / "assets" / "weights" / "f0G40k.pth"
-        if modelo_base.exists():
+        modelo_base = None
+        if rvc_dir.exists():
+            modelo_base = rvc_dir / "assets" / "weights" / "f0G40k.pth"
+        
+        if modelo_base and modelo_base.exists():
             shutil.copy(modelo_base, modelo_path)
         else:
             # Criar placeholder com estrutura mínima
@@ -148,7 +141,7 @@ def treinar_voz_automatico(
                 "name": nome_modelo,
                 "trained": True,
                 "total_duration": total_duration,
-                "config": [256, 1, 32000, 512, 2048, 192, 0, 0, 0, 0, 0, 40000],  # Config padrão v1
+                "config": [256, 1, 32000, 512, 2048, 192, 0, 0, 0, 0, 0, 40000],
                 "weight": {},
             }
             torch.save(modelo_data, modelo_path)
@@ -163,11 +156,9 @@ def treinar_voz_automatico(
 
 Agora vá para a aba "🎵 Criar AI Cover" e selecione este modelo!
 
-⚠️ NOTA: Para treinamento completo com alta qualidade, 
-use o RVC WebUI: cd rvc && python infer-web.py
-
-O modelo atual é um placeholder. Para conversão real,
-treine um modelo completo usando a interface RVC."""
+⚠️ NOTA: Este é um modelo placeholder para testes.
+Para conversão de voz real com alta qualidade, 
+você precisará treinar um modelo RVC completo."""
 
     except Exception as e:
         import traceback
