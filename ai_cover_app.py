@@ -357,6 +357,9 @@ Possíveis soluções:
         modelo_path = MODELS_DIR / f"{modelo_selecionado}.pth"
         vocal_convertido = str(output_subdir / "vocal_convertido.wav")
         
+        logger.info(f"Usando modelo: {modelo_path}")
+        logger.info(f"Modelo existe: {modelo_path.exists()}")
+        
         if modelo_path.exists():
             # Usar o conversor de voz FreeVC (com embeddings reais)
             try:
@@ -367,20 +370,26 @@ Possíveis soluções:
                     pitch_shift=0,
                     mix_ratio=0.8  # 80% voz convertida, 20% original
                 )
+                
+                # Verificar vocal convertido
+                vc_audio, _ = sf.read(vocal_convertido)
+                vc_max = np.abs(vc_audio).max()
+                logger.info(f"Vocal convertido: max={vc_max:.4f}")
+                
                 progress(0.75, desc="✅ Conversão de voz concluída!")
             except Exception as e:
-                print(f"Aviso: Erro na conversão FreeVC - {e}")
+                logger.error(f"Aviso: Erro na conversão FreeVC - {e}")
                 # Fallback para conversor antigo
                 try:
                     from voice_converter import ConversorVoz
                     conversor_old = ConversorVoz(str(modelo_path))
                     conversor_old.converter(vocal_path, vocal_convertido, pitch_shift=0)
                 except Exception as e2:
-                    print(f"Fallback também falhou: {e2}")
-                    print("Usando vocal original...")
+                    logger.error(f"Fallback também falhou: {e2}")
+                    logger.info("Usando vocal original...")
                     shutil.copy(vocal_path, vocal_convertido)
         else:
-            print(f"Modelo não encontrado: {modelo_path}")
+            logger.warning(f"Modelo não encontrado: {modelo_path}")
             shutil.copy(vocal_path, vocal_convertido)
         
         # Passo 3: Mixar
@@ -425,12 +434,19 @@ Possíveis soluções:
         return output_path, f"""✅ AI COVER CRIADO COM SUCESSO!
 
 📁 Arquivo: {output_path}
+📊 Tamanho: {file_size/1024:.1f} KB
+🔊 Nível de áudio: {nivel_max:.2f}
 
 Arquivos gerados:
 - 🎤 Vocal separado: {vocal_path}
-- 🎸 Instrumental: {instrumental_path}
+- 🎸 Instrumental: {instrumental_path}  
 - 🎙️ Vocal convertido: {vocal_convertido}
-- 🎵 AI Cover final: {output_path}"""
+- 🎵 AI Cover final: {output_path}
+
+💡 Se não ouvir som, verifique:
+1. Se o modelo de voz foi treinado corretamente
+2. Se a música original tem vocal audível
+3. Tente baixar o arquivo e tocar localmente"""
 
     except Exception as e:
         import traceback
