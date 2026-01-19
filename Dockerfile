@@ -24,6 +24,7 @@ COPY ai_cover_app.py .
 COPY audio_separator.py .
 COPY audio_mixer.py .
 COPY voice_converter.py .
+COPY voice_trainer.py .
 COPY clonar_voz.py .
 
 # Criar diretórios

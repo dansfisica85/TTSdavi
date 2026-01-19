@@ -253,22 +253,33 @@ Possíveis soluções:
 2. Verifique se o Demucs está instalado: pip install demucs
 3. Verifique se há espaço em disco suficiente"""
         
-        # Passo 2: Converter vocal
+        # Passo 2: Converter vocal com o modelo treinado
         progress(0.6, desc="🎤 Aplicando sua voz ao vocal...")
         modelo_path = MODELS_DIR / f"{modelo_selecionado}.pth"
         vocal_convertido = str(output_subdir / "vocal_convertido.wav")
         
         if modelo_path.exists():
-            # Usar o conversor de voz RVC
+            # Usar o conversor de voz FreeVC (com embeddings reais)
             try:
-                from voice_converter import ConversorVoz
-                conversor = ConversorVoz(str(modelo_path))
-                conversor.converter(vocal_path, vocal_convertido, pitch_shift=0)
+                conversor = ConversorVozFreeVC(str(modelo_path))
+                conversor.converter(
+                    audio_entrada=vocal_path,
+                    audio_saida=vocal_convertido,
+                    pitch_shift=0,
+                    mix_ratio=0.8  # 80% voz convertida, 20% original
+                )
                 progress(0.75, desc="✅ Conversão de voz concluída!")
             except Exception as e:
-                print(f"Aviso: Erro na conversão - {e}")
-                print("Usando vocal original...")
-                shutil.copy(vocal_path, vocal_convertido)
+                print(f"Aviso: Erro na conversão FreeVC - {e}")
+                # Fallback para conversor antigo
+                try:
+                    from voice_converter import ConversorVoz
+                    conversor_old = ConversorVoz(str(modelo_path))
+                    conversor_old.converter(vocal_path, vocal_convertido, pitch_shift=0)
+                except Exception as e2:
+                    print(f"Fallback também falhou: {e2}")
+                    print("Usando vocal original...")
+                    shutil.copy(vocal_path, vocal_convertido)
         else:
             print(f"Modelo não encontrado: {modelo_path}")
             shutil.copy(vocal_path, vocal_convertido)
@@ -382,7 +393,7 @@ def criar_interface():
                 btn_treinar.click(
                     fn=treinar_voz_automatico,
                     inputs=[audios_treino, nome_modelo],
-                    outputs=[status_treino]
+                    outputs=[status_treino, modelo_dropdown]
                 )
             
             # Tab 2: Criar AI Cover
