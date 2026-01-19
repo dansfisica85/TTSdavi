@@ -273,6 +273,10 @@ def criar_ai_cover_automatico(
 ) -> Tuple[Optional[str], str]:
     """Cria AI Cover AUTOMATICAMENTE com configurações otimizadas."""
     
+    logger.info(f"=== INICIANDO CRIAÇÃO DE AI COVER ===")
+    logger.info(f"Arquivo de música: {arquivo_musica}")
+    logger.info(f"Modelo selecionado: {modelo_selecionado}")
+    
     # Validar música
     if arquivo_musica is None:
         return None, "❌ Faça upload de uma música (WAV, FLAC ou OGG)"
@@ -285,6 +289,14 @@ def criar_ai_cover_automatico(
         )
         if not is_valid:
             return None, message
+            
+        # Verificar se arquivo existe e tem tamanho
+        if os.path.exists(arquivo_musica):
+            file_size = os.path.getsize(arquivo_musica)
+            logger.info(f"Arquivo de entrada: {file_size/1024:.1f} KB")
+        else:
+            return None, "❌ Arquivo de música não encontrado"
+            
     except Exception as e:
         logger.error(f"Erro ao validar música: {e}")
         return None, "❌ Erro ao validar arquivo"
@@ -296,6 +308,7 @@ def criar_ai_cover_automatico(
         nome_musica = Path(arquivo_musica).stem
         output_subdir = OUTPUT_DIR / f"{nome_musica}_{modelo_selecionado}"
         output_subdir.mkdir(exist_ok=True)
+        logger.info(f"Diretório de saída: {output_subdir}")
         
         # Passo 1: Separar vocais
         progress(0.1, desc="✂️ Iniciando separação de vocais e instrumentais...")
@@ -311,6 +324,14 @@ def criar_ai_cover_automatico(
                 diretorio_saida=str(output_subdir),
                 progress_callback=progress_sep_callback
             )
+            
+            # Verificar arquivos separados
+            import soundfile as sf
+            vocal_audio, sr = sf.read(vocal_path)
+            inst_audio, _ = sf.read(instrumental_path)
+            logger.info(f"Vocal separado: max={np.abs(vocal_audio).max():.4f}, shape={vocal_audio.shape}")
+            logger.info(f"Instrumental: max={np.abs(inst_audio).max():.4f}, shape={inst_audio.shape}")
+            
             progress(0.5, desc="✅ Separação concluída!")
         except Exception as e:
             return None, f"""❌ Erro na separação de áudio: {str(e)}
@@ -365,10 +386,32 @@ Possíveis soluções:
                 volume_vocal=1.0,
                 volume_instrumental=1.0
             )
+            
+            # Verificar se o áudio final tem som
+            import soundfile as sf
+            audio_final, sr_final = sf.read(output_path)
+            nivel_max = np.abs(audio_final).max()
+            logger.info(f"Nível máximo do áudio final: {nivel_max:.4f}")
+            
+            if nivel_max < 0.001:
+                logger.warning("⚠️ Áudio final muito baixo, aplicando normalização...")
+                # Normalizar para -3dB
+                if nivel_max > 0:
+                    audio_final = audio_final * (0.7 / nivel_max)
+                    sf.write(output_path, audio_final, sr_final)
+                    
         except Exception as e:
             return None, f"❌ Erro na mixagem: {str(e)}"
         
         progress(1.0, desc="✅ AI Cover pronto!")
+        
+        # Verificar arquivo final
+        if not os.path.exists(output_path):
+            return None, "❌ Erro: arquivo de saída não foi criado"
+            
+        file_size = os.path.getsize(output_path)
+        if file_size < 1000:
+            return None, f"❌ Erro: arquivo de saída muito pequeno ({file_size} bytes)"
         
         return output_path, f"""✅ AI COVER CRIADO COM SUCESSO!
 
@@ -480,7 +523,11 @@ def criar_interface():
                         btn_criar = gr.Button("🚀 CRIAR AI COVER", variant="primary", size="lg")
                     
                     with gr.Column():
-                        audio_output = gr.Audio(label="🔊 AI Cover Gerado")
+                        audio_output = gr.Audio(
+                            label="🔊 AI Cover Gerado",
+                            type="filepath",
+                            interactive=False
+                        )
                         status_cover = gr.Textbox(label="📋 Status", lines=8, interactive=False)
                 
                 btn_atualizar.click(
