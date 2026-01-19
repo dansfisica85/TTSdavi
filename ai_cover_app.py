@@ -16,6 +16,7 @@ import os
 import sys
 import tempfile
 import shutil
+import logging
 from pathlib import Path
 from typing import Optional, Tuple, List
 
@@ -24,6 +25,32 @@ import numpy as np
 import soundfile as sf
 import gradio as gr
 import requests
+
+# Importar configurações de Gradio otimizadas
+try:
+    from gradio_config import GradioConfig, setup_gradio_environment
+    from upload_handler import validate_upload, sanitize_filename, cleanup_temp_files
+    setup_gradio_environment()
+except ImportError as e:
+    print(f"⚠️ Aviso: Módulos de otimização não encontrados: {e}")
+    class GradioConfig:
+        @staticmethod
+        def get_launch_kwargs():
+            return {
+                "server_name": os.environ.get("GRADIO_SERVER_NAME", "0.0.0.0"),
+                "server_port": int(os.environ.get("PORT", os.environ.get("GRADIO_SERVER_PORT", "7860"))),
+                "show_error": True,
+                "inbrowser": False,
+                "share": os.environ.get("GRADIO_SHARE", "true").lower() == "true",
+                "analytics_enabled": False,
+            }
+
+# Configurar logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 # Workaround: gradio_client crashes on bool schemas (TypeError: 'bool' not iterable)
 # Monkeypatch json_schema_to_python_type to ignore pure-boolean schemas
@@ -44,7 +71,7 @@ try:
     _gc_utils._json_schema_to_python_type = _safe_json_schema_to_python_type
     _gc_utils.json_schema_to_python_type = _safe_json_schema_to_python_type_public
 except Exception as _patch_err:  # pragma: no cover
-    print(f"[gradio-client patch] falhou ao aplicar workaround: {_patch_err}")
+    logger.warning(f"[gradio-client patch] falhou ao aplicar workaround: {_patch_err}")
 
 from audio_separator import separar_audio, normalizar_caminho_audio
 from audio_mixer import mixar_audio
@@ -140,6 +167,26 @@ def treinar_voz_automatico(
     
     nome_modelo = nome_modelo.strip().replace(" ", "_")
     
+    # Validar arquivos
+    arquivos_validos = []
+    for arquivo in arquivos_audio:
+        if arquivo:
+            try:
+                is_valid, message = validate_upload(
+                    arquivo,
+                    allowed_extensions=(".wav", ".mp3", ".flac", ".ogg"),
+                    max_size_mb=500
+                )
+                if is_valid:
+                    arquivos_validos.append(arquivo)
+                else:
+                    logger.warning(f"Arquivo inválido: {message}")
+            except Exception as e:
+                logger.error(f"Erro ao validar arquivo: {e}")
+    
+    if not arquivos_validos:
+        return "❌ Nenhum arquivo de áudio válido. Use WAV, MP3, FLAC ou OGG com tamanho < 500MB", gr.update()
+    
     try:
         # Criar diretório do dataset
         dataset_dir = DATASETS_DIR / nome_modelo
@@ -149,9 +196,9 @@ def treinar_voz_automatico(
         progress(0.05, desc="📁 Preparando áudios...")
         arquivos_processados = []
         
-        for i, arquivo in enumerate(arquivos_audio):
-            pct = 0.05 + (i / len(arquivos_audio)) * 0.15
-            progress(pct, desc=f"Copiando áudio {i+1}/{len(arquivos_audio)}...")
+        for i, arquivo in enumerate(arquivos_validos):
+            pct = 0.05 + (i / len(arquivos_validos)) * 0.15
+            progress(pct, desc=f"Copiando áudio {i+1}/{len(arquivos_validos)}...")
             
             try:
                 arquivo_seguro = normalizar_caminho_audio(arquivo)
@@ -170,7 +217,7 @@ def treinar_voz_automatico(
                 arquivos_processados.append(str(dest))
                 
             except Exception as e:
-                print(f"Erro processando áudio {i+1}: {e}")
+                logger.error(f"Erro processando áudio {i+1}: {e}")
                 continue
         
         if not arquivos_processados:
@@ -211,6 +258,7 @@ A conversão aplicará as características vocais extraídas.""", gr.update(choi
     except Exception as e:
         import traceback
         traceback.print_exc()
+        logger.error(f"Erro ao treinar voz: {str(e)}")
         return f"❌ Erro: {str(e)}", gr.update()
 
 
@@ -225,8 +273,21 @@ def criar_ai_cover_automatico(
 ) -> Tuple[Optional[str], str]:
     """Cria AI Cover AUTOMATICAMENTE com configurações otimizadas."""
     
+    # Validar música
     if arquivo_musica is None:
-        return None, "❌ Faça upload de uma música (WAV ou FLAC)"
+        return None, "❌ Faça upload de uma música (WAV, FLAC ou OGG)"
+    
+    try:
+        is_valid, message = validate_upload(
+            arquivo_musica,
+            allowed_extensions=(".wav", ".flac", ".ogg", ".mp3"),
+            max_size_mb=500
+        )
+        if not is_valid:
+            return None, message
+    except Exception as e:
+        logger.error(f"Erro ao validar música: {e}")
+        return None, "❌ Erro ao validar arquivo"
     
     if not modelo_selecionado or modelo_selecionado == "Nenhum modelo treinado":
         return None, "❌ Treine um modelo de voz primeiro na aba 'Treinar Voz'"
@@ -503,19 +564,16 @@ if __name__ == "__main__":
     
     demo = criar_interface()
     
-    # Configuração para Railway/produção
-    # IMPORTANTE: usar 0.0.0.0 para aceitar conexões externas
-    server_name = os.environ.get("GRADIO_SERVER_NAME", "0.0.0.0")
-    server_port = int(os.environ.get("PORT", os.environ.get("GRADIO_SERVER_PORT", "7860")))
+    # Obter configurações otimizadas
+    launch_kwargs = GradioConfig.get_launch_kwargs()
     
-    print(f"🌐 Iniciando servidor em {server_name}:{server_port}")
+    logger.info(f"🌐 Iniciando servidor em {launch_kwargs['server_name']}:{launch_kwargs['server_port']}")
     
-    # Gradio: configuração para produção
-    demo.launch(
-        server_name=server_name,
-        server_port=server_port,
-        # Railway executa atrás de proxy; share=True evita erro de localhost inacessível
-        share=True,
-        inbrowser=False,
-        show_error=True
-    )
+    try:
+        # Lançar Gradio com configurações otimizadas
+        demo.launch(**launch_kwargs)
+    except KeyboardInterrupt:
+        logger.info("⛔ Servidor interrompido")
+    except Exception as e:
+        logger.error(f"❌ Erro ao iniciar servidor: {e}")
+        raise
