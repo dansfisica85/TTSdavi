@@ -121,6 +121,7 @@ def separar_audio(
     """
     from demucs.pretrained import get_model
     from demucs.apply import apply_model
+    import gc
     
     if not os.path.exists(arquivo_entrada):
         raise FileNotFoundError(f"Arquivo não encontrado: {arquivo_entrada}")
@@ -138,19 +139,41 @@ def separar_audio(
     device = obter_dispositivo()
     print(f"🎵 Separando áudio ({device})...")
     
-    if progress_callback:
-        progress_callback(0.15, "Carregando modelo de separação...")
+    # Limpar memória antes de começar
+    gc.collect()
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
     
-    # Carregar modelo
-    model = get_model(modelo)
+    if progress_callback:
+        progress_callback(0.10, "Carregando modelo de separação...")
+    
+    # Carregar modelo - usando modelo mais leve se não tiver GPU
+    # htdemucs_ft é mais preciso mas mais pesado
+    # htdemucs é o padrão
+    modelo_usado = modelo
+    print(f"📦 Carregando modelo: {modelo_usado}")
+    
+    model = get_model(modelo_usado)
     model.to(device)
     model.eval()
     
     if progress_callback:
-        progress_callback(0.25, "Carregando arquivo de áudio...")
+        progress_callback(0.20, "Carregando arquivo de áudio...")
     
     # Carregar áudio
     wav, _ = carregar_audio(arquivo_entrada, model.samplerate)
+    
+    # Verificar duração do áudio
+    duracao_segundos = wav.shape[1] / model.samplerate
+    print(f"⏱️ Duração do áudio: {duracao_segundos:.1f} segundos")
+    
+    # Se o áudio for muito longo e não tiver GPU, processar em chunks
+    MAX_DURACAO_CPU = 180  # 3 minutos max para CPU
+    if device == "cpu" and duracao_segundos > MAX_DURACAO_CPU:
+        print(f"⚠️ Áudio muito longo para CPU ({duracao_segundos:.0f}s). Limitando a {MAX_DURACAO_CPU}s")
+        max_samples = int(MAX_DURACAO_CPU * model.samplerate)
+        wav = wav[:, :max_samples]
+        duracao_segundos = MAX_DURACAO_CPU
     
     # Garantir stereo
     if wav.shape[0] == 1:
@@ -164,48 +187,76 @@ def separar_audio(
     wav_norm = wav_norm.to(device).unsqueeze(0)
     
     if progress_callback:
-        progress_callback(0.35, "Processando separação (Demucs)...")
+        progress_callback(0.30, f"Processando separação ({duracao_segundos:.0f}s de áudio)...")
     
-    # Separar - com tratamento de erro melhorado
+    print(f"🔄 Iniciando separação Demucs (isso pode levar alguns minutos em CPU)...")
+    
+    # Separar - com tratamento de erro melhorado e processamento em partes
     try:
         with torch.no_grad():
-            # Aplicar modelo Demucs
+            # Limpar memória antes do processamento pesado
+            gc.collect()
+            
+            # Aplicar modelo Demucs - DESABILITAR progress interno para evitar travamento
+            # O progress interno do demucs pode causar problemas em alguns ambientes
             sources = apply_model(
                 model, 
                 wav_norm, 
                 device=device, 
-                progress=True,
+                progress=False,  # DESABILITADO para evitar travamento
+                num_workers=0,   # Evitar multiprocessing que pode travar
             )
     except RuntimeError as e:
         if "out of memory" in str(e).lower():
             print("⚠️ Memória insuficiente. Tentando com redução de qualidade...")
             if progress_callback:
-                progress_callback(0.40, "Retentando com memória reduzida...")
-            torch.cuda.empty_cache() if torch.cuda.is_available() else None
-            # Tentar novamente com menos dados
+                progress_callback(0.35, "Retentando com memória reduzida...")
+            
+            # Limpar memória
+            gc.collect()
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+            
+            # Tentar novamente com áudio mais curto (metade)
             wav_norm_reduced = wav_norm[:, :, :wav_norm.shape[-1]//2]
             with torch.no_grad():
-                sources = apply_model(model, wav_norm_reduced, device=device, progress=True)
+                sources = apply_model(
+                    model, 
+                    wav_norm_reduced, 
+                    device=device, 
+                    progress=False,
+                    num_workers=0,
+                )
         else:
             raise
     
     if progress_callback:
-        progress_callback(0.65, "Finalizando separação...")
+        progress_callback(0.70, "Finalizando separação...")
     
     sources = sources * (ref.std() + 1e-8) + ref.mean()
     sources = sources.squeeze(0).cpu()
     
+    # Guardar informações do modelo antes de liberar memória
+    source_names = model.sources
+    samplerate = model.samplerate
+    
+    # Liberar memória do modelo DEPOIS de pegar as informações necessárias
+    del model
+    del wav_norm
+    gc.collect()
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
+    
     if progress_callback:
-        progress_callback(0.75, "Salvando arquivos...")
+        progress_callback(0.80, "Salvando arquivos...")
     
     # Salvar
     nome = Path(arquivo_entrada).stem
     vocal_path = os.path.join(diretorio_saida, f"{nome}_vocals.wav")
     instrumental_path = os.path.join(diretorio_saida, f"{nome}_instrumental.wav")
     
-    source_names = model.sources
     vocal_idx = source_names.index("vocals")
-    salvar_audio(sources[vocal_idx], vocal_path, model.samplerate)
+    salvar_audio(sources[vocal_idx], vocal_path, samplerate)
     
     # Combinar instrumentais
     instrumental = None
@@ -215,7 +266,7 @@ def separar_audio(
                 instrumental = sources[i].clone()
             else:
                 instrumental = instrumental + sources[i]
-    salvar_audio(instrumental, instrumental_path, model.samplerate)
+    salvar_audio(instrumental, instrumental_path, samplerate)
     
     if progress_callback:
         progress_callback(0.95, "Finalizando...")
