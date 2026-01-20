@@ -1,7 +1,7 @@
 # 🔧 CORREÇÃO APLICADA - Erro max_size
 
 ## ❌ Problema
-```
+`````````
 TypeError: Blocks.launch() got an unexpected keyword argument 'max_size'
 ```
 
