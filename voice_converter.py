@@ -33,9 +33,36 @@ def obter_dispositivo() -> str:
     return "cpu"
 
 
+def normalizar_caminho_audio(caminho: str) -> str:
+    """
+    Copia arquivo de áudio para um caminho temporário seguro se necessário.
+    Resolve problemas com espaços e caracteres especiais no nome.
+    """
+    import shutil
+    import re
+    import tempfile
+    
+    # Verificar se o caminho tem caracteres problemáticos
+    nome_arquivo = os.path.basename(caminho)
+    tem_problemas = bool(re.search(r'[\s\(\)\[\]\{\}\&\$\#\@\!\%\^]', nome_arquivo))
+    
+    if tem_problemas:
+        # Criar caminho temporário seguro
+        ext = Path(caminho).suffix
+        temp_dir = tempfile.mkdtemp(prefix="audio_safe_")
+        nome_seguro = f"audio_temp{ext}"
+        caminho_seguro = os.path.join(temp_dir, nome_seguro)
+        shutil.copy2(caminho, caminho_seguro)
+        return caminho_seguro
+    
+    return caminho
+
+
 def carregar_audio_sf(caminho: str, sr_alvo: int = 16000) -> Tuple[np.ndarray, int]:
     """Carrega áudio usando soundfile e faz resample se necessário."""
-    audio, sr = sf.read(caminho, dtype='float32')
+    # Normalizar caminho para evitar problemas com caracteres especiais
+    caminho_seguro = normalizar_caminho_audio(caminho)
+    audio, sr = sf.read(caminho_seguro, dtype='float32')
     
     # Converter para mono se necessário
     if audio.ndim > 1:

@@ -1,0 +1,10 @@
+{
+  "name": "teste_final",
+  "metadata": {
+    "total_duration": 1.0,
+    "num_files": 1,
+    "sample_rate": 16000,
+    "embedding_dim": 167,
+    "device": "cpu"
+  }
+}

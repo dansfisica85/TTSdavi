@@ -1,19 +1,51 @@
-ARG BASE=nvidia/cuda:11.8.0-base-ubuntu22.04
-FROM ${BASE}
+# Dockerfile leve para Railway - AI Cover Studio
+# Build version: 2026-01-19 (com fix ClientDisconnect)
+FROM python:3.10-slim
 
-RUN apt-get update && apt-get upgrade -y
-RUN apt-get install -y --no-install-recommends gcc g++ make python3 python3-dev python3-pip python3-venv python3-wheel espeak-ng libsndfile1-dev && rm -rf /var/lib/apt/lists/*
-RUN pip3 install llvmlite --ignore-installed
+ENV PYTHONUNBUFFERED=1
+ENV PIP_NO_CACHE_DIR=1
+ENV GRADIO_SERVER_NAME=0.0.0.0
+ENV PORT=8080
 
-# Install Dependencies:
-RUN pip3 install torch torchaudio --extra-index-url https://download.pytorch.org/whl/cu118
-RUN rm -rf /root/.cache/pip
+# Configurações otimizadas para Gradio (resolve ClientDisconnect)
+ENV GRADIO_REQUEST_TIMEOUT=600
+ENV GRADIO_ANALYTICS_ENABLED=False
+ENV GRADIO_UPLOAD_BUFFER_SIZE=10485760
+ENV GRADIO_AUTORELOAD=False
+ENV GRADIO_LOG_LEVEL=INFO
+ENV MAX_FILE_SIZE_MB=500
+ENV UPLOAD_TIMEOUT=600
 
-# Copy TTS repository contents:
-WORKDIR /root
-COPY . /root
+WORKDIR /app
 
-RUN make install
+# Instalar apenas ffmpeg
+RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg libsndfile1 \
+    && rm -rf /var/lib/apt/lists/*
 
-ENTRYPOINT ["tts"]
-CMD ["--help"]
+# Copiar apenas requirements
+COPY requirements-railway.txt .
+
+# Instalar dependências Python
+RUN pip install -r requirements-railway.txt
+
+# Copiar apenas os arquivos necessários da aplicação
+COPY ai_cover_app.py .
+COPY audio_separator.py .
+COPY audio_mixer.py .
+COPY voice_converter.py .
+COPY voice_trainer.py .
+COPY clonar_voz.py .
+
+# Copiar módulos de configuração otimizada (resolve ClientDisconnect)
+COPY gradio_config.py .
+COPY upload_handler.py .
+
+# Criar diretórios
+RUN mkdir -p models datasets output /tmp/gradio_uploads
+
+# Copiar modelos pré-treinados (se existirem no diretório models/)
+COPY models/ models/
+
+EXPOSE 8080
+
+CMD ["python", "ai_cover_app.py"]

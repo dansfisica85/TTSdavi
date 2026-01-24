@@ -1,0 +1,26 @@
+# Minimal dependencies for Railway (CPU-only, lightweight)
+# PyTorch CPU-only minimal version
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.1.0+cpu
+torchaudio==2.1.0+cpu
+
+# NumPy < 2.0 (compatibilidade com PyTorch)
+numpy<2.0
+
+# Audio processing (lightweight)
+soundfile>=0.12.0
+librosa>=0.10.0
+
+# Web UI - Gradio 6.x (última versão estável)
+gradio>=6.0.0
+
+# HuggingFace Hub
+huggingface_hub>=0.19.0
+
+# Separação de áudio (Demucs CPU)
+demucs>=4.0.0
+
+# Utilities
+tqdm>=4.64.0
+requests>=2.31.0
+scipy>=1.11.0

@@ -19,12 +19,35 @@ Ou execute sem argumentos para usar a interface interativa.
 
 import argparse
 import os
+import re
+import shutil
 import sys
 import tempfile
 from pathlib import Path
 
 import torch
 import torchaudio
+
+
+def normalizar_caminho_audio(caminho: str) -> str:
+    """
+    Copia arquivo de áudio para um caminho temporário seguro se necessário.
+    Resolve problemas com espaços e caracteres especiais no nome.
+    """
+    # Verificar se o caminho tem caracteres problemáticos
+    nome_arquivo = os.path.basename(caminho)
+    tem_problemas = bool(re.search(r'[\s\(\)\[\]\{\}\&\$\#\@\!\%\^]', nome_arquivo))
+    
+    if tem_problemas:
+        # Criar caminho temporário seguro
+        ext = Path(caminho).suffix
+        temp_dir = tempfile.mkdtemp(prefix="audio_safe_")
+        nome_seguro = f"audio_temp{ext}"
+        caminho_seguro = os.path.join(temp_dir, nome_seguro)
+        shutil.copy2(caminho, caminho_seguro)
+        return caminho_seguro
+    
+    return caminho
 
 
 def verificar_dependencias():
@@ -60,16 +83,59 @@ def obter_dispositivo():
 
 
 def carregar_modelo(device="cpu"):
-    """Carrega o modelo XTTS v2."""
+    """Carrega o modelo XTTS v2 com progresso detalhado."""
     from TTS.api import TTS
+    import os
+    import sys
     
     print("📥 Carregando modelo XTTS v2...")
-    print("   (Isso pode demorar na primeira execução, pois o modelo será baixado)")
+    print("   (Isso pode demorar na primeira execução, pois o modelo será baixado ~2GB)")
+    print()
     
-    # Usa o modelo multilíngue XTTS v2
-    tts = TTS("tts_models/multilingual/multi-dataset/xtts_v2")
-    tts.to(device)
+    # Verificar se o modelo já foi baixado
+    cache_dir = os.path.expanduser("~/.local/share/tts")
+    model_name = "tts_models--multilingual--multi-dataset--xtts_v2"
+    model_path = os.path.join(cache_dir, model_name)
     
+    if os.path.exists(model_path):
+        print("   ✓ Modelo encontrado no cache!")
+    else:
+        print("   ⏳ Modelo não encontrado, iniciando download...")
+        print("   ⚠️  Se o download travar, verifique sua conexão de internet")
+        print("   💡 Você pode cancelar (Ctrl+C) e tentar novamente mais tarde")
+        print()
+    
+    # Aceitar termos automaticamente (via variável de ambiente)
+    os.environ["COQUI_TOS_AGREED"] = "1"
+    
+    try:
+        # Usa o modelo multilíngue XTTS v2
+        print("   [1/3] Inicializando TTS...")
+        sys.stdout.flush()
+        
+        tts = TTS("tts_models/multilingual/multi-dataset/xtts_v2", progress_bar=True)
+        
+        print("   [2/3] Movendo modelo para o dispositivo...")
+        sys.stdout.flush()
+        
+        tts.to(device)
+        
+        print("   [3/3] Preparando modelo para inferência...")
+        sys.stdout.flush()
+        
+    except KeyboardInterrupt:
+        print("\n\n   ⚠️  Carregamento cancelado pelo usuário")
+        print("   💡 Execute novamente para retomar o download")
+        raise
+    except Exception as e:
+        print(f"\n\n   ❌ Erro ao carregar modelo: {e}")
+        print("   💡 Dicas:")
+        print("      1. Verifique sua conexão de internet")
+        print("      2. Certifique-se de ter pelo menos 4GB de RAM livre")
+        print("      3. Tente executar: python diagnostico_tts.py")
+        raise
+    
+    print()
     print("✅ Modelo carregado com sucesso!")
     return tts
 
@@ -90,6 +156,9 @@ def clonar_voz(tts, audio_referencia: str, texto: str, idioma: str = "pt", arqui
     """
     if not os.path.exists(audio_referencia):
         raise FileNotFoundError(f"Arquivo de áudio de referência não encontrado: {audio_referencia}")
+    
+    # Normalizar caminho para evitar problemas com caracteres especiais
+    audio_referencia = normalizar_caminho_audio(audio_referencia)
     
     print(f"🎙️ Clonando voz de: {audio_referencia}")
     print(f"📝 Texto: {texto}")

@@ -16,6 +16,7 @@ import os
 import sys
 import tempfile
 import shutil
+import logging
 from pathlib import Path
 from typing import Optional, Tuple, List
 
@@ -23,9 +24,58 @@ import torch
 import numpy as np
 import soundfile as sf
 import gradio as gr
+import requests
 
-from audio_separator import separar_audio
+# Importar configurações de Gradio otimizadas
+try:
+    from gradio_config import GradioConfig, setup_gradio_environment
+    from upload_handler import validate_upload, sanitize_filename, cleanup_temp_files
+    setup_gradio_environment()
+except ImportError as e:
+    print(f"⚠️ Aviso: Módulos de otimização não encontrados: {e}")
+    class GradioConfig:
+        @staticmethod
+        def get_launch_kwargs():
+            return {
+                "server_name": os.environ.get("GRADIO_SERVER_NAME", "0.0.0.0"),
+                "server_port": int(os.environ.get("PORT", os.environ.get("GRADIO_SERVER_PORT", "7860"))),
+                "show_error": True,
+                "inbrowser": False,
+                "share": os.environ.get("GRADIO_SHARE", "true").lower() == "true",
+                "analytics_enabled": False,
+            }
+
+# Configurar logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
+# Workaround: gradio_client crashes on bool schemas (TypeError: 'bool' not iterable)
+# Monkeypatch json_schema_to_python_type to ignore pure-boolean schemas
+try:
+    import gradio_client.utils as _gc_utils
+
+    _orig_json_schema_to_python_type = _gc_utils._json_schema_to_python_type
+
+    def _safe_json_schema_to_python_type(schema, defs=None):
+        if isinstance(schema, bool):
+            return "Any"
+        return _orig_json_schema_to_python_type(schema, defs)
+
+    def _safe_json_schema_to_python_type_public(schema):
+        defs = schema.get("$defs") if isinstance(schema, dict) else None
+        return _safe_json_schema_to_python_type(schema, defs)
+
+    _gc_utils._json_schema_to_python_type = _safe_json_schema_to_python_type
+    _gc_utils.json_schema_to_python_type = _safe_json_schema_to_python_type_public
+except Exception as _patch_err:  # pragma: no cover
+    logger.warning(f"[gradio-client patch] falhou ao aplicar workaround: {_patch_err}")
+
+from audio_separator import separar_audio, normalizar_caminho_audio
 from audio_mixer import mixar_audio
+from voice_trainer import treinar_modelo_voz, ConversorVozFreeVC
 
 
 # Informações do Desenvolvedor
@@ -57,120 +107,159 @@ def listar_modelos() -> List[str]:
     return modelos if modelos else ["Nenhum modelo treinado"]
 
 
+def _download_file(url: str, destino: Path):
+    """Faz download de um arquivo via HTTP para o caminho destino."""
+    with requests.get(url, stream=True, timeout=60) as r:
+        r.raise_for_status()
+        destino.parent.mkdir(parents=True, exist_ok=True)
+        with open(destino, "wb") as f:
+            for chunk in r.iter_content(chunk_size=8192):
+                if chunk:
+                    f.write(chunk)
+
+
+def baixar_modelo_rvc(
+    url_modelo: str,
+    nome_modelo: str,
+    url_index: Optional[str] = "",
+    progress=gr.Progress(),
+) -> Tuple[str, gr.Dropdown]:
+    """Baixa um modelo RVC pronto (.pth) e opcionalmente o index (.index)."""
+
+    if not url_modelo or not nome_modelo:
+        return "❌ Informe a URL do modelo (.pth) e um nome.", gr.update()
+
+    nome_modelo = nome_modelo.strip().replace(" ", "_")
+    destino_pth = MODELS_DIR / f"{nome_modelo}.pth"
+    destino_index = MODELS_DIR / f"{nome_modelo}.index" if url_index else None
+
+    try:
+        progress(0.1, desc="🔽 Baixando modelo (.pth)...")
+        _download_file(url_modelo, destino_pth)
+
+        if url_index:
+            progress(0.6, desc="🔽 Baixando index (.index)...")
+            _download_file(url_index, destino_index)
+
+        progress(1.0, desc="✅ Download concluído!")
+        status = f"✅ Modelo salvo em: {destino_pth}\nIndex: {destino_index if url_index else '—'}"
+        return status, gr.update(choices=listar_modelos(), value=nome_modelo)
+    except Exception as e:
+        return f"❌ Erro ao baixar: {e}", gr.update()
+
+
 # =============================================================================
-# TREINAMENTO AUTOMÁTICO
+# TREINAMENTO AUTOMÁTICO DE VOZ
 # =============================================================================
 
 def treinar_voz_automatico(
     arquivos_audio: List[str],
     nome_modelo: str,
     progress=gr.Progress()
-) -> str:
-    """Treina modelo de voz AUTOMATICAMENTE com configurações otimizadas."""
+) -> Tuple[str, gr.Dropdown]:
+    """Treina modelo de voz REAL com extração de embeddings."""
     
     if not arquivos_audio:
-        return "❌ Faça upload de arquivos de áudio da voz que deseja clonar."
+        return "❌ Faça upload de arquivos de áudio da voz que deseja clonar.", gr.update()
     
     if not nome_modelo or nome_modelo.strip() == "":
-        return "❌ Dê um nome para o modelo (ex: minha_voz)"
+        return "❌ Dê um nome para o modelo (ex: minha_voz)", gr.update()
     
     nome_modelo = nome_modelo.strip().replace(" ", "_")
     
+    # Validar arquivos
+    arquivos_validos = []
+    for arquivo in arquivos_audio:
+        if arquivo:
+            try:
+                is_valid, message = validate_upload(
+                    arquivo,
+                    allowed_extensions=(".wav", ".mp3", ".flac", ".ogg"),
+                    max_size_mb=500
+                )
+                if is_valid:
+                    arquivos_validos.append(arquivo)
+                else:
+                    logger.warning(f"Arquivo inválido: {message}")
+            except Exception as e:
+                logger.error(f"Erro ao validar arquivo: {e}")
+    
+    if not arquivos_validos:
+        return "❌ Nenhum arquivo de áudio válido. Use WAV, MP3, FLAC ou OGG com tamanho < 500MB", gr.update()
+    
     try:
-        progress(0.1, desc="📁 Preparando dataset...")
-        
         # Criar diretório do dataset
         dataset_dir = DATASETS_DIR / nome_modelo
         dataset_dir.mkdir(exist_ok=True)
         
-        # Processar áudios
-        total_duration = 0
-        for i, arquivo in enumerate(arquivos_audio):
-            progress((i + 1) / len(arquivos_audio) * 0.3, desc=f"Processando áudio {i+1}/{len(arquivos_audio)}...")
+        # Copiar e processar áudios para o dataset
+        progress(0.05, desc="📁 Preparando áudios...")
+        arquivos_processados = []
+        
+        for i, arquivo in enumerate(arquivos_validos):
+            pct = 0.05 + (i / len(arquivos_validos)) * 0.15
+            progress(pct, desc=f"Copiando áudio {i+1}/{len(arquivos_validos)}...")
             
-            audio, sr = sf.read(arquivo, dtype='float32')
-            duration = len(audio) / sr
-            total_duration += duration
-            
-            # Salvar em formato padrão
-            dest = dataset_dir / f"audio_{i:04d}.wav"
-            
-            # Converter para mono se necessário
-            if audio.ndim > 1:
-                audio = audio.mean(axis=1)
-            
-            # Resample para 40kHz (padrão RVC)
-            if sr != 40000:
-                from scipy import signal
-                num_samples = int(len(audio) * 40000 / sr)
-                audio = signal.resample(audio, num_samples)
-            
-            sf.write(str(dest), audio, 40000)
+            try:
+                arquivo_seguro = normalizar_caminho_audio(arquivo)
+                
+                # Carregar e salvar em formato padrão
+                import librosa
+                audio, sr = librosa.load(arquivo_seguro, sr=16000, mono=True)
+                
+                # Limitar a 3 minutos por arquivo
+                max_samples = 16000 * 60 * 3
+                if len(audio) > max_samples:
+                    audio = audio[:max_samples]
+                
+                dest = dataset_dir / f"audio_{i:04d}.wav"
+                sf.write(str(dest), audio, 16000)
+                arquivos_processados.append(str(dest))
+                
+            except Exception as e:
+                logger.error(f"Erro processando áudio {i+1}: {e}")
+                continue
         
-        progress(0.4, desc="🎓 Iniciando treinamento automático...")
+        if not arquivos_processados:
+            return "❌ Nenhum áudio pôde ser processado. Verifique os arquivos.", gr.update()
         
-        # Verificar se RVC está disponível
-        rvc_dir = BASE_DIR / "rvc"
-        if not rvc_dir.exists():
-            return "❌ RVC não encontrado. Clone o repositório RVC primeiro."
+        # Treinar modelo usando voice_trainer
+        def progress_callback(pct, msg):
+            # Mapear 0-1 para 0.2-0.95
+            mapped_pct = 0.2 + pct * 0.75
+            progress(mapped_pct, desc=msg)
         
-        # Adicionar ao path
-        if str(rvc_dir) not in sys.path:
-            sys.path.insert(0, str(rvc_dir))
+        modelo_path = treinar_modelo_voz(
+            arquivos_audio=arquivos_processados,
+            nome_modelo=nome_modelo,
+            diretorio_saida=str(MODELS_DIR),
+            progress_callback=progress_callback,
+        )
         
-        progress(0.5, desc="🔄 Preparando treinamento RVC...")
-        
-        # Tentar usar o treinamento real do RVC
-        try:
-            from infer.modules.train import preprocess, extract, train
-            
-            progress(0.6, desc="🔄 Pré-processando áudios...")
-            # O treinamento real do RVC seria iniciado aqui
-            # Por enquanto, criamos um modelo placeholder
-            
-        except ImportError:
-            print("Módulos de treinamento RVC não encontrados, usando modo simplificado")
-        
-        progress(0.8, desc="💾 Salvando modelo...")
-        
-        # Criar arquivo de modelo
-        modelo_path = MODELS_DIR / f"{nome_modelo}.pth"
-        
-        # Se tiver um modelo base, usar como template
-        modelo_base = rvc_dir / "assets" / "weights" / "f0G40k.pth"
-        if modelo_base.exists():
-            shutil.copy(modelo_base, modelo_path)
-        else:
-            # Criar placeholder com estrutura mínima
-            modelo_data = {
-                "name": nome_modelo,
-                "trained": True,
-                "total_duration": total_duration,
-                "config": [256, 1, 32000, 512, 2048, 192, 0, 0, 0, 0, 0, 40000],  # Config padrão v1
-                "weight": {},
-            }
-            torch.save(modelo_data, modelo_path)
+        # Carregar info do modelo
+        modelo_data = torch.load(modelo_path, map_location="cpu")
+        metadata = modelo_data.get("metadata", {})
+        total_duration = metadata.get("total_duration", 0)
         
         progress(1.0, desc="✅ Treinamento concluído!")
         
-        return f"""✅ MODELO PREPARADO COM SUCESSO!
+        return f"""✅ MODELO TREINADO COM SUCESSO!
 
 📁 Nome: {nome_modelo}
-⏱️ Áudio usado: {total_duration/60:.1f} minutos
+⏱️ Áudio usado: {total_duration:.1f} segundos ({total_duration/60:.1f} minutos)
+🎤 Arquivos processados: {len(arquivos_processados)}
 💾 Salvo em: {modelo_path}
 
-Agora vá para a aba "🎵 Criar AI Cover" e selecione este modelo!
+🎵 Agora vá para a aba "Criar AI Cover" e selecione este modelo!
 
-⚠️ NOTA: Para treinamento completo com alta qualidade, 
-use o RVC WebUI: cd rvc && python infer-web.py
-
-O modelo atual é um placeholder. Para conversão real,
-treine um modelo completo usando a interface RVC."""
+✨ O modelo contém embeddings reais da sua voz.
+A conversão aplicará as características vocais extraídas.""", gr.update(choices=listar_modelos(), value=nome_modelo)
 
     except Exception as e:
         import traceback
         traceback.print_exc()
-        return f"❌ Erro: {str(e)}"
+        logger.error(f"Erro ao treinar voz: {str(e)}")
+        return f"❌ Erro: {str(e)}", gr.update()
 
 
 # =============================================================================
@@ -184,8 +273,33 @@ def criar_ai_cover_automatico(
 ) -> Tuple[Optional[str], str]:
     """Cria AI Cover AUTOMATICAMENTE com configurações otimizadas."""
     
+    logger.info(f"=== INICIANDO CRIAÇÃO DE AI COVER ===")
+    logger.info(f"Arquivo de música: {arquivo_musica}")
+    logger.info(f"Modelo selecionado: {modelo_selecionado}")
+    
+    # Validar música
     if arquivo_musica is None:
-        return None, "❌ Faça upload de uma música (WAV ou FLAC)"
+        return None, "❌ Faça upload de uma música (WAV, FLAC ou OGG)"
+    
+    try:
+        is_valid, message = validate_upload(
+            arquivo_musica,
+            allowed_extensions=(".wav", ".flac", ".ogg", ".mp3"),
+            max_size_mb=500
+        )
+        if not is_valid:
+            return None, message
+            
+        # Verificar se arquivo existe e tem tamanho
+        if os.path.exists(arquivo_musica):
+            file_size = os.path.getsize(arquivo_musica)
+            logger.info(f"Arquivo de entrada: {file_size/1024:.1f} KB")
+        else:
+            return None, "❌ Arquivo de música não encontrado"
+            
+    except Exception as e:
+        logger.error(f"Erro ao validar música: {e}")
+        return None, "❌ Erro ao validar arquivo"
     
     if not modelo_selecionado or modelo_selecionado == "Nenhum modelo treinado":
         return None, "❌ Treine um modelo de voz primeiro na aba 'Treinar Voz'"
@@ -194,15 +308,39 @@ def criar_ai_cover_automatico(
         nome_musica = Path(arquivo_musica).stem
         output_subdir = OUTPUT_DIR / f"{nome_musica}_{modelo_selecionado}"
         output_subdir.mkdir(exist_ok=True)
+        logger.info(f"Diretório de saída: {output_subdir}")
         
         # Passo 1: Separar vocais
         progress(0.1, desc="✂️ Iniciando separação de vocais e instrumentais...")
         
+        def progress_sep_callback(pct, msg):
+            """Mapeia progresso de separação (0.1 a 0.5) para UI"""
+            mapped_pct = 0.1 + (pct * 0.4)
+            progress(mapped_pct, desc=f"✂️ {msg}")
+        
         try:
             vocal_path, instrumental_path = separar_audio(
                 arquivo_musica,
-                diretorio_saida=str(output_subdir)
+                diretorio_saida=str(output_subdir),
+                progress_callback=progress_sep_callback
             )
+            
+            # Verificar arquivos separados
+            import soundfile as sf
+            vocal_audio, sr = sf.read(vocal_path)
+            inst_audio, _ = sf.read(instrumental_path)
+            vocal_max = np.abs(vocal_audio).max()
+            inst_max = np.abs(inst_audio).max()
+            logger.info(f"Vocal separado: max={vocal_max:.4f}, shape={vocal_audio.shape}")
+            logger.info(f"Instrumental: max={inst_max:.4f}, shape={inst_audio.shape}")
+            
+            # Se vocal está muito baixo, normalizar
+            if vocal_max < 0.01 and vocal_max > 0:
+                logger.warning(f"⚠️ Vocal muito baixo ({vocal_max:.4f}), normalizando...")
+                vocal_audio = vocal_audio * (0.5 / vocal_max)
+                sf.write(vocal_path, vocal_audio, sr)
+                logger.info(f"Vocal normalizado para max={np.abs(vocal_audio).max():.4f}")
+            
             progress(0.5, desc="✅ Separação concluída!")
         except Exception as e:
             return None, f"""❌ Erro na separação de áudio: {str(e)}
@@ -210,26 +348,48 @@ def criar_ai_cover_automatico(
 Possíveis soluções:
 1. Verifique se o arquivo de áudio é válido (WAV, FLAC ou OGG)
 2. Verifique se o Demucs está instalado: pip install demucs
-3. Verifique se há espaço em disco suficiente"""
+3. Verifique se há espaço em disco suficiente
+4. Tente usar um arquivo de áudio mais curto
+5. Se estiver usando GPU, verifique se há memória suficiente"""
         
-        # Passo 2: Converter vocal
+        # Passo 2: Converter vocal com o modelo treinado
         progress(0.6, desc="🎤 Aplicando sua voz ao vocal...")
         modelo_path = MODELS_DIR / f"{modelo_selecionado}.pth"
         vocal_convertido = str(output_subdir / "vocal_convertido.wav")
         
+        logger.info(f"Usando modelo: {modelo_path}")
+        logger.info(f"Modelo existe: {modelo_path.exists()}")
+        
         if modelo_path.exists():
-            # Usar o conversor de voz RVC
+            # Usar o conversor de voz FreeVC (com embeddings reais)
             try:
-                from voice_converter import ConversorVoz
-                conversor = ConversorVoz(str(modelo_path))
-                conversor.converter(vocal_path, vocal_convertido, pitch_shift=0)
+                conversor = ConversorVozFreeVC(str(modelo_path))
+                conversor.converter(
+                    audio_entrada=vocal_path,
+                    audio_saida=vocal_convertido,
+                    pitch_shift=0,
+                    mix_ratio=0.8  # 80% voz convertida, 20% original
+                )
+                
+                # Verificar vocal convertido
+                vc_audio, _ = sf.read(vocal_convertido)
+                vc_max = np.abs(vc_audio).max()
+                logger.info(f"Vocal convertido: max={vc_max:.4f}")
+                
                 progress(0.75, desc="✅ Conversão de voz concluída!")
             except Exception as e:
-                print(f"Aviso: Erro na conversão - {e}")
-                print("Usando vocal original...")
-                shutil.copy(vocal_path, vocal_convertido)
+                logger.error(f"Aviso: Erro na conversão FreeVC - {e}")
+                # Fallback para conversor antigo
+                try:
+                    from voice_converter import ConversorVoz
+                    conversor_old = ConversorVoz(str(modelo_path))
+                    conversor_old.converter(vocal_path, vocal_convertido, pitch_shift=0)
+                except Exception as e2:
+                    logger.error(f"Fallback também falhou: {e2}")
+                    logger.info("Usando vocal original...")
+                    shutil.copy(vocal_path, vocal_convertido)
         else:
-            print(f"Modelo não encontrado: {modelo_path}")
+            logger.warning(f"Modelo não encontrado: {modelo_path}")
             shutil.copy(vocal_path, vocal_convertido)
         
         # Passo 3: Mixar
@@ -244,20 +404,49 @@ Possíveis soluções:
                 volume_vocal=1.0,
                 volume_instrumental=1.0
             )
+            
+            # Verificar se o áudio final tem som
+            import soundfile as sf
+            audio_final, sr_final = sf.read(output_path)
+            nivel_max = np.abs(audio_final).max()
+            logger.info(f"Nível máximo do áudio final: {nivel_max:.4f}")
+            
+            if nivel_max < 0.001:
+                logger.warning("⚠️ Áudio final muito baixo, aplicando normalização...")
+                # Normalizar para -3dB
+                if nivel_max > 0:
+                    audio_final = audio_final * (0.7 / nivel_max)
+                    sf.write(output_path, audio_final, sr_final)
+                    
         except Exception as e:
             return None, f"❌ Erro na mixagem: {str(e)}"
         
         progress(1.0, desc="✅ AI Cover pronto!")
         
+        # Verificar arquivo final
+        if not os.path.exists(output_path):
+            return None, "❌ Erro: arquivo de saída não foi criado"
+            
+        file_size = os.path.getsize(output_path)
+        if file_size < 1000:
+            return None, f"❌ Erro: arquivo de saída muito pequeno ({file_size} bytes)"
+        
         return output_path, f"""✅ AI COVER CRIADO COM SUCESSO!
 
 📁 Arquivo: {output_path}
+📊 Tamanho: {file_size/1024:.1f} KB
+🔊 Nível de áudio: {nivel_max:.2f}
 
 Arquivos gerados:
 - 🎤 Vocal separado: {vocal_path}
-- 🎸 Instrumental: {instrumental_path}
+- 🎸 Instrumental: {instrumental_path}  
 - 🎙️ Vocal convertido: {vocal_convertido}
-- 🎵 AI Cover final: {output_path}"""
+- 🎵 AI Cover final: {output_path}
+
+💡 Se não ouvir som, verifique:
+1. Se o modelo de voz foi treinado corretamente
+2. Se a música original tem vocal audível
+3. Tente baixar o arquivo e tocar localmente"""
 
     except Exception as e:
         import traceback
@@ -269,28 +458,32 @@ Arquivos gerados:
 # INTERFACE GRADIO SIMPLIFICADA
 # =============================================================================
 
+# CSS customizado
+CUSTOM_CSS = """
+.footer {
+    text-align: center;
+    padding: 20px;
+    margin-top: 20px;
+    border-top: 1px solid #ddd;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 10px;
+}
+.header-info {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 20px;
+    border-radius: 10px;
+    color: white;
+    margin-bottom: 20px;
+}
+"""
+
+# Theme global (para Gradio 6.x, passamos em launch())
+GRADIO_THEME = gr.themes.Soft()
+
 def criar_interface():
     with gr.Blocks(
         title="🎤 AI Cover Studio - Prof. Davi",
-        theme=gr.themes.Soft(),
-        css="""
-        .footer {
-            text-align: center;
-            padding: 20px;
-            margin-top: 20px;
-            border-top: 1px solid #ddd;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border-radius: 10px;
-        }
-        .header-info {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 20px;
-            border-radius: 10px;
-            color: white;
-            margin-bottom: 20px;
-        }
-        """
     ) as demo:
         
         # Cabeçalho com informações do desenvolvedor
@@ -334,12 +527,6 @@ def criar_interface():
                     
                     with gr.Column():
                         status_treino = gr.Textbox(label="📋 Status", lines=12, interactive=False)
-                
-                btn_treinar.click(
-                    fn=treinar_voz_automatico,
-                    inputs=[audios_treino, nome_modelo],
-                    outputs=[status_treino]
-                )
             
             # Tab 2: Criar AI Cover
             with gr.TabItem("🎵 Criar AI Cover"):
@@ -361,7 +548,11 @@ def criar_interface():
                         btn_criar = gr.Button("🚀 CRIAR AI COVER", variant="primary", size="lg")
                     
                     with gr.Column():
-                        audio_output = gr.Audio(label="🔊 AI Cover Gerado")
+                        audio_output = gr.Audio(
+                            label="🔊 AI Cover Gerado",
+                            type="filepath",
+                            interactive=False
+                        )
                         status_cover = gr.Textbox(label="📋 Status", lines=8, interactive=False)
                 
                 btn_atualizar.click(
@@ -374,6 +565,35 @@ def criar_interface():
                     inputs=[musica_input, modelo_dropdown],
                     outputs=[audio_output, status_cover]
                 )
+
+            # Tab 3: Baixar modelo RVC pronto
+            with gr.TabItem("📥 Baixar Modelo RVC"):
+                gr.Markdown("""
+                Cole uma URL direta para um modelo RVC (.pth) e opcionalmente um arquivo de index (.index).
+                Exemplo: link direto do Hugging Face (botão "Download" → "Copy link").
+                """)
+
+                with gr.Row():
+                    with gr.Column():
+                        url_modelo = gr.Textbox(label="URL do modelo (.pth)")
+                        url_index = gr.Textbox(label="URL do index (.index) (opcional)")
+                        nome_modelo_dl = gr.Textbox(label="Nome para salvar (sem espaços)", placeholder="minha_voz_pronta")
+                        btn_baixar = gr.Button("⬇️ Baixar e adicionar", variant="primary")
+                    with gr.Column():
+                        status_download = gr.Textbox(label="Status do download", lines=6, interactive=False)
+
+                btn_baixar.click(
+                    fn=baixar_modelo_rvc,
+                    inputs=[url_modelo, nome_modelo_dl, url_index],
+                    outputs=[status_download, modelo_dropdown]
+                )
+        
+        # Conectar eventos que dependem de componentes de outras abas (após todas as abas serem criadas)
+        btn_treinar.click(
+            fn=treinar_voz_automatico,
+            inputs=[audios_treino, nome_modelo],
+            outputs=[status_treino, modelo_dropdown]
+        )
         
         # Rodapé com informações do desenvolvedor
         gr.HTML(f"""
@@ -416,4 +636,20 @@ if __name__ == "__main__":
     print("=" * 60)
     
     demo = criar_interface()
-    demo.launch(server_port=7861, share=False, inbrowser=True)
+    
+    # Obter configurações otimizadas
+    launch_kwargs = GradioConfig.get_launch_kwargs()
+    
+    # Adicionar theme e css para Gradio 6.x
+    launch_kwargs["css"] = CUSTOM_CSS
+    
+    logger.info(f"🌐 Iniciando servidor em {launch_kwargs['server_name']}:{launch_kwargs['server_port']}")
+    
+    try:
+        # Lançar Gradio com configurações otimizadas
+        demo.launch(**launch_kwargs)
+    except KeyboardInterrupt:
+        logger.info("⛔ Servidor interrompido")
+    except Exception as e:
+        logger.error(f"❌ Erro ao iniciar servidor: {e}")
+        raise

@@ -107,10 +107,18 @@ def mixar_audio(
     # Mixar
     mix = vocal + instrumental
     
-    # Normalizar para evitar clipping
+    # Normalizar para evitar clipping e garantir volume audível
     max_val = np.max(np.abs(mix))
-    if max_val > 1.0:
-        mix = mix / max_val * 0.95
+    print(f"   Nível máximo antes da normalização: {max_val:.4f}")
+    
+    if max_val > 0.001:  # Se tem áudio significativo
+        if max_val > 1.0:
+            mix = mix / max_val * 0.95
+        elif max_val < 0.1:  # Volume muito baixo, normalizar
+            print(f"   ⚠️ Volume baixo detectado, normalizando...")
+            mix = mix / max_val * 0.7
+    else:
+        print(f"   ⚠️ AVISO: Mix praticamente silencioso!")
     
     # Criar diretório de saída se necessário
     os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
@@ -118,7 +126,10 @@ def mixar_audio(
     # Salvar
     sf.write(output_path, mix, sample_rate)
     
-    print(f"✅ Mix salvo: {output_path}")
+    # Verificar arquivo salvo
+    file_size = os.path.getsize(output_path) if os.path.exists(output_path) else 0
+    print(f"✅ Mix salvo: {output_path} ({file_size/1024:.1f} KB)")
+    
     return output_path
 
 
